@@ -172,16 +172,16 @@ fun SettingsScreen(
 
             Spacer(Modifier.height(24.dp))
             Text(
-                "Voice phone control (enable Accessibility first):
-• "go home" / "go back" / "recents" / "lock phone"
-• "open Chrome" / "open WhatsApp"
-• "click Login" / "scroll down" / "swipe left"
-• "read screen" / "type hello"
-• "call 5551234" / "volume up" / "mute"
-• "navigate to airport" / "set alarm 7 30"
-• "search latest news" / "screenshot"
+                text = """Voice phone control (enable Accessibility first):
+• go home / go back / recents / lock phone
+• open Chrome / open WhatsApp
+• click Login / scroll down / swipe left
+• read screen / type hello
+• call 5551234 / volume up / mute
+• navigate to airport / set alarm 7 30
+• search latest news / screenshot
 
-Permissions: Mic, Camera, Notifications, Overlay, Accessibility, Phone (optional for direct call).",
+Permissions: Mic, Camera, Notifications, Overlay, Accessibility, Phone (optional for direct call).""",
                 style = MaterialTheme.typography.bodySmall,
                 color = Color.Gray
             )
