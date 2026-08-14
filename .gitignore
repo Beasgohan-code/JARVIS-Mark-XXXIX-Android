@@ -1,0 +1,41 @@
+# Built application files
+*.apk
+*.aar
+*.ap_
+*.aab
+
+# Files for the ART/Dalvik VM
+*.dex
+
+# Java class files
+*.class
+
+# Generated files
+bin/
+gen/
+out/
+release/
+
+# Gradle
+.gradle/
+build/
+**/build/
+
+# Local config
+local.properties
+*.iml
+.idea/
+.DS_Store
+captures/
+.externalNativeBuild/
+.cxx/
+*.hprof
+.kotlin/
+
+# Keystores (never commit secrets)
+*.jks
+*.keystore
+keystore.properties
+
+# OS
+Thumbs.db
