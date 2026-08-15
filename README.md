@@ -2,7 +2,7 @@
 
 Voice-first AI assistant for Android: **Gemini function calling**, full phone control (Accessibility), CameraX + screen vision, floating bubble, multimodal files.
 
-[![Android CI](https://github.com/YOUR_USERNAME/JARVIS-Mark-XXXIX-Android/actions/workflows/android.yml/badge.svg)](https://github.com/YOUR_USERNAME/JARVIS-Mark-XXXIX-Android/actions)
+[![Android CI](https://github.com/YOUR_USERNAME/JARVIS-Mark-XXXIX-Android/actions/workflows/android.yml/badge.svg)](https://github.com/Beasgohan-code/JARVIS-Mark-XXXIX-Android/actions)
 
 > Replace `YOUR_USERNAME` in the badge URL after you push to GitHub.
 
