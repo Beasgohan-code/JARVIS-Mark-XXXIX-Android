@@ -65,6 +65,27 @@ class OpenRouterClient @Inject constructor(
             .create(OpenRouterApi::class.java)
     }
 
+    suspend fun chat(userText: String, systemPrompt: String = SystemPrompts.defaultBody()): String {
+        val key = settings.getOpenRouterApiKey()
+        if (key.isBlank()) return "OpenRouter API key not set. Add it in Settings."
+        val model = settings.getOpenRouterModel()
+        return try {
+            val response = api.chatCompletion(
+                ChatRequest(
+                    model = model,
+                    messages = listOf(
+                        ORMessage("system", systemPrompt),
+                        ORMessage("user", userText)
+                    )
+                )
+            )
+            response.choices?.firstOrNull()?.message?.content?.trim()
+                ?: "Empty response from OpenRouter."
+        } catch (e: Exception) {
+            "OpenRouter error: ${e.message}"
+        }
+    }
+
     suspend fun generate(module: String, prompt: String): String {
         val key = settings.getOpenRouterApiKey()
         if (key.isBlank()) return "OpenRouter API key not set."

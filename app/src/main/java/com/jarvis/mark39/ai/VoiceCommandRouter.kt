@@ -44,6 +44,16 @@ class VoiceCommandRouter @Inject constructor(
                 return tools.execute("wifi_settings", emptyMap())
             text in listOf("bluetooth") ->
                 return tools.execute("bluetooth_settings", emptyMap())
+            text in listOf("open chrome", "chrome", "google chrome") ->
+                return tools.execute("open_app", mapOf("name" to "chrome"))
+            text in listOf("open youtube", "youtube") ->
+                return tools.execute("open_app", mapOf("name" to "youtube"))
+            text in listOf("open whatsapp", "whatsapp") ->
+                return tools.execute("open_app", mapOf("name" to "whatsapp"))
+            text in listOf("search news", "news", "latest news") ->
+                return tools.execute("web_search", mapOf("query" to "latest world news headlines today"))
+            text in listOf("list apps", "installed apps", "show apps") ->
+                return tools.execute("list_apps", emptyMap())
         }
 
         // open <app>

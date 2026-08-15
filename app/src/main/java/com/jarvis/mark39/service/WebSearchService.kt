@@ -67,7 +67,7 @@ class WebSearchService @Inject constructor() {
             related.forEach { sb.appendLine(it) }
         }
         if (sb.lines().size <= 2) {
-            return "No instant answer for \"$query\". Try a more specific query, or open a browser search."
+            return "No instant answer for \"$query\". Open Chrome and search, or say: open url https://duckduckgo.com/?q=" + java.net.URLEncoder.encode(query, "UTF-8")
         }
         return sb.toString().trim()
     }

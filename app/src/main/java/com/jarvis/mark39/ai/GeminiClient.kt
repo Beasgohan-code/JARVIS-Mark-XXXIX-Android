@@ -43,7 +43,7 @@ class GeminiClient @Inject constructor(
                     SafetySetting(HarmCategory.SEXUALLY_EXPLICIT, BlockThreshold.ONLY_HIGH),
                     SafetySetting(HarmCategory.DANGEROUS_CONTENT, BlockThreshold.ONLY_HIGH)
                 ),
-                systemInstruction = content { text(SYSTEM_PROMPT) }
+                systemInstruction = content { text(settings.resolveSystemPrompt()) }
             )
             chatSession = model!!.startChat()
             boundModelName = modelName
@@ -123,18 +123,7 @@ class GeminiClient @Inject constructor(
             "gemini-3.6-flash"
         )
 
-        private val SYSTEM_PROMPT = """
-You are JARVIS Mark XXXIX — an advanced Android AI assistant inspired by a calm, precise butler.
-Personality: helpful, concise, slightly witty, never robotic or verbose.
-Rules:
-- Answer clearly in short paragraphs or bullets when useful.
-- Prefer action + confirmation over long explanations.
-- If the user asks to control the phone (home, apps, volume, call, etc.), acknowledge and assume the local router may execute it.
-- For facts that may change (news, weather, prices), say when you are unsure.
-- Never invent private data about the user.
-- Match the user's language (English/Hinglish/etc.).
-- Security: never ask for or store passwords, OTPs, or full card numbers.
-""".trimIndent()
+                private val SYSTEM_PROMPT = SystemPrompts.defaultBody()
 
         fun friendlyError(e: Throwable): String {
             val raw = e.message.orEmpty() + " " + (e.cause?.message.orEmpty())

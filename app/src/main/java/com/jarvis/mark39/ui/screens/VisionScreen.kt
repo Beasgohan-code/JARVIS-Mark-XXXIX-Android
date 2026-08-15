@@ -57,6 +57,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.jarvis.mark39.ui.components.ThinkingIndicator
 import com.jarvis.mark39.ui.viewmodels.JarvisViewModel
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicLong
@@ -165,18 +166,24 @@ fun VisionScreen(
                 }
             }
 
+            if (uiState.isProcessing) {
+                ThinkingIndicator(
+                    status = uiState.activityStatus ?: "Analyzing vision…",
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                )
+            }
             Text(
                 text = visionText.ifBlank {
                     if (uiState.isProcessing) "Analyzing…" else "Capture a frame or start screen vision"
                 },
-                color = Color.White.copy(alpha = 0.9f),
+                color = Color.White.copy(alpha = 0.92f),
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(140.dp)
+                    .height(150.dp)
                     .padding(horizontal = 12.dp, vertical = 8.dp)
-                    .background(Color(0xFF1E1E2A), RoundedCornerShape(12.dp))
-                    .padding(12.dp)
+                    .background(Color(0xCC0C121C), RoundedCornerShape(16.dp))
+                    .padding(14.dp)
                     .verticalScroll(rememberScrollState())
             )
         }

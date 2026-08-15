@@ -6,6 +6,7 @@ import com.jarvis.mark39.ui.theme.AppStyleId
 import android.content.Intent
 import android.provider.Settings
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,6 +14,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -46,8 +49,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.jarvis.mark39.ai.GeminiClient
+import com.jarvis.mark39.ai.SystemPrompts
 import com.jarvis.mark39.data.repository.SettingsRepository
 import com.jarvis.mark39.ui.viewmodels.JarvisViewModel
 import dagger.hilt.EntryPoint
@@ -71,11 +76,25 @@ fun SettingsScreen(
     val uiState by viewModel.uiState.collectAsState()
 
     var geminiKey by remember { mutableStateOf(settings.getGeminiApiKey()) }
+    var groqKey by remember { mutableStateOf(settings.getGroqApiKey()) }
     var openRouterKey by remember { mutableStateOf(settings.getOpenRouterApiKey()) }
     var selectedModel by remember { mutableStateOf(settings.getGeminiModel()) }
     var modelMenuOpen by remember { mutableStateOf(false) }
     var confirmActions by remember { mutableStateOf(settings.isConfirmBeforeAction()) }
     var saved by remember { mutableStateOf(false) }
+    var selectedPromptId by remember { mutableStateOf(settings.getSystemPromptId()) }
+    var depthMode by remember { mutableStateOf(settings.getDepthMode()) }
+    var customPrompt by remember { mutableStateOf(settings.getCustomSystemPrompt()) }
+    var llmProvider by remember { mutableStateOf(settings.getLlmProvider()) }
+    var orModel by remember { mutableStateOf(settings.getOpenRouterModel()) }
+    var skillWeb by remember { mutableStateOf(settings.isSkillWebSearch()) }
+    var skillPhone by remember { mutableStateOf(settings.isSkillPhoneControl()) }
+    var skillCoding by remember { mutableStateOf(settings.isSkillCoding()) }
+    var skillVision by remember { mutableStateOf(settings.isSkillVision()) }
+    var skillAgent by remember { mutableStateOf(settings.isSkillAgent()) }
+    var skillSaveTokens by remember { mutableStateOf(settings.isSkillSaveTokens()) }
+    var fallbackEnabled by remember { mutableStateOf(settings.isFallbackEnabled()) }
+    var groqModel by remember { mutableStateOf(settings.getGroqModel()) }
     var selectedStyle by remember { mutableStateOf(settings.getStyleId()) }
     var lightMode by remember { mutableStateOf(settings.isLightMode()) }
     var selectedWallpaper by remember { mutableStateOf(settings.getWallpaperId()) }
@@ -163,12 +182,42 @@ fun SettingsScreen(
                 colors = fieldColors(),
                 shape = RoundedCornerShape(12.dp)
             )
+            Spacer(Modifier.height(12.dp))
+            OutlinedTextField(
+                value = groqKey,
+                onValueChange = { groqKey = it; saved = false },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Groq API Key (free tier)") },
+                visualTransformation = PasswordVisualTransformation(),
+                singleLine = true,
+                colors = fieldColors(),
+                shape = RoundedCornerShape(12.dp)
+            )
+            Text(
+                "console.groq.com — fast free Llama models. Fallback uses all keys you set.",
+                style = MaterialTheme.typography.bodySmall,
+                color = Color(0xFF8B949E)
+            )
             Spacer(Modifier.height(16.dp))
             Button(
                 onClick = {
                     settings.setGeminiApiKey(geminiKey)
                     settings.setOpenRouterApiKey(openRouterKey)
+                    settings.setGroqApiKey(groqKey)
+                    settings.setGroqModel(groqModel)
+                    settings.setSkillSaveTokens(skillSaveTokens)
+                    settings.setFallbackEnabled(fallbackEnabled)
                     settings.setGeminiModel(selectedModel)
+                    settings.setSystemPromptId(selectedPromptId)
+                    settings.setDepthMode(depthMode)
+                    settings.setCustomSystemPrompt(customPrompt)
+                    settings.setLlmProvider(llmProvider)
+                    settings.setOpenRouterModel(orModel)
+                    settings.setSkillWebSearch(skillWeb)
+                    settings.setSkillPhoneControl(skillPhone)
+                    settings.setSkillCoding(skillCoding)
+                    settings.setSkillVision(skillVision)
+                    settings.setSkillAgent(skillAgent)
                     settings.setStyleId(selectedStyle)
                     settings.setLightMode(lightMode)
                     settings.setWallpaperId(selectedWallpaper)
@@ -177,6 +226,7 @@ fun SettingsScreen(
                     settings.setHideFromRecents(hideRecents)
                     settings.setIncognitoMode(incognito)
                     viewModel.refreshApiKeyStatus()
+                    viewModel.newChatSession()
                     saved = true
                     (context as? Activity)?.recreate()
                 },
@@ -185,6 +235,107 @@ fun SettingsScreen(
             ) { Text(if (saved) "Saved ✓" else "Save") }
 
             Spacer(Modifier.height(28.dp))
+            
+            Spacer(Modifier.height(28.dp))
+            SectionTitle("LLM provider")
+            Spacer(Modifier.height(8.dp))
+            Row(Modifier.fillMaxWidth()) {
+                listOf("gemini" to "Gemini", "groq" to "Groq", "openrouter" to "OpenRouter").forEach { (id, label) ->
+                    val sel = llmProvider == id
+                    Text(
+                        label,
+                        color = if (sel) Color.Black else Color.White,
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(4.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(if (sel) Color(0xFF00E5FF) else Color(0xFF161B22))
+                            .clickable { llmProvider = id; saved = false }
+                            .padding(12.dp)
+                    )
+                }
+            }
+            if (llmProvider == "groq") {
+                Spacer(Modifier.height(8.dp))
+                Text("Groq model", style = MaterialTheme.typography.labelLarge, color = Color(0xFF8B949E))
+                listOf(
+                    "llama-3.3-70b-versatile",
+                    "llama-3.1-8b-instant",
+                    "llama-3.1-70b-versatile",
+                    "gemma2-9b-it",
+                    "mixtral-8x7b-32768"
+                ).forEach { m ->
+                    val sel = groqModel == m
+                    Text(
+                        m,
+                        color = if (sel) Color(0xFF00E5FF) else Color.White,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(if (sel) Color(0xFF00E5FF).copy(alpha = 0.15f) else Color.Transparent)
+                            .clickable { groqModel = m; saved = false }
+                            .padding(10.dp)
+                    )
+                }
+            }
+            if (llmProvider == "openrouter") {
+                Spacer(Modifier.height(8.dp))
+                Text("OpenRouter model", style = MaterialTheme.typography.labelLarge, color = Color(0xFF8B949E))
+                Spacer(Modifier.height(6.dp))
+                Column {
+                    listOf(
+                        "anthropic/claude-3.5-sonnet",
+                        "anthropic/claude-3-haiku",
+                        "openai/gpt-4o-mini",
+                        "openai/gpt-4o",
+                        "google/gemini-2.0-flash-001",
+                        "meta-llama/llama-3.1-70b-instruct",
+                        "deepseek/deepseek-chat"
+                    ).forEach { m ->
+                        val sel = orModel == m
+                        Text(
+                            m,
+                            color = if (sel) Color(0xFF00E5FF) else Color.White,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 2.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(if (sel) Color(0xFF00E5FF).copy(alpha = 0.15f) else Color.Transparent)
+                                .clickable { orModel = m; saved = false }
+                                .padding(10.dp)
+                        )
+                    }
+                }
+                Text(
+                    "Get key: openrouter.ai — Claude, GPT, Llama, etc.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color(0xFF8B949E)
+                )
+            }
+
+            Spacer(Modifier.height(28.dp))
+            SectionTitle("Skills")
+            Spacer(Modifier.height(8.dp))
+            SkillRow("Web search", skillWeb) { skillWeb = it; saved = false }
+            SkillRow("Phone control", skillPhone) { skillPhone = it; saved = false }
+            SkillRow("Coding help", skillCoding) { skillCoding = it; saved = false }
+            SkillRow("Vision / camera", skillVision) { skillVision = it; saved = false }
+            SkillRow("Agent mode (multi-step)", skillAgent) { skillAgent = it; saved = false }
+            SkillRow("Save tokens (short replies)", skillSaveTokens) { skillSaveTokens = it; saved = false }
+            SkillRow("Auto fallback (Gemini→Groq→OpenRouter)", fallbackEnabled) { fallbackEnabled = it; saved = false }
+            Text(
+                "Agent mode uses extra tool steps. No full Linux sandbox on phone — actions stay on-device.",
+                style = MaterialTheme.typography.bodySmall,
+                color = Color(0xFF8B949E)
+            )
+            Text(
+                "Sandbox boundary: cannot install packages, root the device, or run arbitrary native binaries.",
+                style = MaterialTheme.typography.bodySmall,
+                color = Color(0xFF8B949E)
+            )
+
             SectionTitle("Safety")
             Spacer(Modifier.height(8.dp))
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -198,6 +349,13 @@ fun SettingsScreen(
             Spacer(Modifier.height(28.dp))
             SectionTitle("System access")
             Spacer(Modifier.height(8.dp))
+            
+            Text(
+                "If Accessibility shows “App was denied access”: Settings → Apps → JARVIS → three-dot menu → Allow restricted settings, then enable Accessibility again. (Required on many phones for sideloaded apps.)",
+                style = MaterialTheme.typography.bodySmall,
+                color = Color(0xFFFFAB40),
+                modifier = Modifier.padding(top = 8.dp, bottom = 8.dp)
+            )
             ModernButton("Accessibility (phone control)") {
                 context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
             }
@@ -224,6 +382,108 @@ fun SettingsScreen(
             Spacer(Modifier.height(28.dp))
             
             Spacer(Modifier.height(28.dp))
+            
+            Spacer(Modifier.height(28.dp))
+            SectionTitle("Personality / System prompt")
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "How JARVIS thinks and replies",
+                style = MaterialTheme.typography.bodySmall,
+                color = Color(0xFF8B949E)
+            )
+            Spacer(Modifier.height(8.dp))
+            Column {
+                SystemPrompts.PRESETS.forEach { preset ->
+                    val sel = selectedPromptId == preset.id
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(if (sel) Color(0xFF00E5FF).copy(alpha = 0.2f) else Color(0xFF161B22))
+                            .clickable {
+                                selectedPromptId = preset.id
+                                saved = false
+                            }
+                            .padding(12.dp)
+                    ) {
+                        Text(
+                            preset.label,
+                            color = if (sel) Color(0xFF00E5FF) else Color.White,
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                        Text(
+                            preset.description,
+                            color = Color(0xFF8B949E),
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+                val customSel = selectedPromptId == "custom"
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(if (customSel) Color(0xFF00E5FF).copy(alpha = 0.2f) else Color(0xFF161B22))
+                        .clickable {
+                            selectedPromptId = "custom"
+                            saved = false
+                        }
+                        .padding(12.dp)
+                ) {
+                    Text(
+                        "Custom",
+                        color = if (customSel) Color(0xFF00E5FF) else Color.White,
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    Text(
+                        "Write your own system prompt",
+                        color = Color(0xFF8B949E),
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
+            if (selectedPromptId == "custom") {
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = customPrompt,
+                    onValueChange = { customPrompt = it; saved = false },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Custom system prompt") },
+                    minLines = 4,
+                    maxLines = 10,
+                    colors = fieldColors(),
+                    shape = RoundedCornerShape(12.dp)
+                )
+            }
+
+            
+            Spacer(Modifier.height(16.dp))
+            Text("Answer depth", style = MaterialTheme.typography.labelLarge, color = Color(0xFF8B949E))
+            Spacer(Modifier.height(6.dp))
+            Column {
+                listOf(
+                    "quick" to "Quick — short & fast",
+                    "balanced" to "Balanced — Gemini-like",
+                    "deep" to "Deep — Claude-like care",
+                    "thorough" to "Thorough — Kimi-like detail"
+                ).forEach { (id, label) ->
+                    val sel = depthMode == id
+                    Text(
+                        label,
+                        color = if (sel) Color(0xFF00E5FF) else Color.White,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 3.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(if (sel) Color(0xFF00E5FF).copy(alpha = 0.15f) else Color(0xFF161B22))
+                            .clickable { depthMode = id; saved = false }
+                            .padding(12.dp)
+                    )
+                }
+            }
             SectionTitle("Appearance")
             Spacer(Modifier.height(8.dp))
             Text("Style", style = MaterialTheme.typography.labelLarge, color = Color(0xFF8B949E))
@@ -355,8 +615,38 @@ Tip: if chat fails with model error, pick another model above and Save.""",
 }
 
 @Composable
+private fun SkillRow(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Text(label, color = Color.White, modifier = Modifier.weight(1f))
+        Switch(checked = checked, onCheckedChange = onChange)
+    }
+}
+
+@Composable
 private fun SectionTitle(text: String) {
-    Text(text, style = MaterialTheme.typography.titleMedium, color = Color(0xFF00E5FF))
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color(0xFF00E5FF).copy(alpha = 0.08f))
+            .border(1.dp, Color(0xFF00E5FF).copy(alpha = 0.2f), RoundedCornerShape(12.dp))
+            .padding(horizontal = 14.dp, vertical = 10.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(8.dp)
+                .clip(RoundedCornerShape(4.dp))
+                .background(Color(0xFF00E5FF))
+        )
+        Spacer(Modifier.width(10.dp))
+        Text(
+            text.uppercase(),
+            style = MaterialTheme.typography.labelLarge,
+            color = Color(0xFF00E5FF),
+            letterSpacing = 1.2.sp
+        )
+    }
 }
 
 @Composable

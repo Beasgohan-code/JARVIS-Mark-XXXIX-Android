@@ -145,12 +145,66 @@ class PhoneControlService @Inject constructor(
     }
 
     fun openAppByName(name: String): String {
+        val q = name.trim().lowercase()
+        if (q.isBlank()) return "Missing app name"
+
+        // Common package aliases
+        val aliases = mapOf(
+            "chrome" to listOf("com.android.chrome", "com.chrome.beta", "com.chrome.dev"),
+            "google chrome" to listOf("com.android.chrome"),
+            "youtube" to listOf("com.google.android.youtube"),
+            "whatsapp" to listOf("com.whatsapp", "com.whatsapp.w4b"),
+            "instagram" to listOf("com.instagram.android"),
+            "telegram" to listOf("org.telegram.messenger", "org.telegram.messenger.web"),
+            "gmail" to listOf("com.google.android.gm"),
+            "maps" to listOf("com.google.android.apps.maps"),
+            "google maps" to listOf("com.google.android.apps.maps"),
+            "photos" to listOf("com.google.android.apps.photos"),
+            "camera" to listOf("com.android.camera", "com.android.camera2", "com.google.android.GoogleCamera"),
+            "settings" to listOf("com.android.settings"),
+            "play store" to listOf("com.android.vending"),
+            "playstore" to listOf("com.android.vending"),
+            "spotify" to listOf("com.spotify.music"),
+            "twitter" to listOf("com.twitter.android"),
+            "x" to listOf("com.twitter.android"),
+            "facebook" to listOf("com.facebook.katana"),
+            "messenger" to listOf("com.facebook.orca"),
+            "snapchat" to listOf("com.snapchat.android"),
+            "netflix" to listOf("com.netflix.mediaclient"),
+            "files" to listOf("com.google.android.apps.nbu.files", "com.android.documentsui"),
+            "calculator" to listOf("com.google.android.calculator", "com.android.calculator2"),
+            "clock" to listOf("com.google.android.deskclock", "com.android.deskclock"),
+            "phone" to listOf("com.google.android.dialer", "com.android.dialer"),
+            "messages" to listOf("com.google.android.apps.messaging", "com.android.mms"),
+            "calendar" to listOf("com.google.android.calendar")
+        )
+
         val pm = context.packageManager
-        val main = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
-        val match = pm.queryIntentActivities(main, 0).firstOrNull {
-            it.loadLabel(pm).toString().equals(name, ignoreCase = true) ||
-                it.loadLabel(pm).toString().contains(name, ignoreCase = true)
+        aliases[q]?.forEach { pkg ->
+            val launch = pm.getLaunchIntentForPackage(pkg)?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            if (launch != null) {
+                context.startActivity(launch)
+                return "Opened $pkg"
+            }
         }
+
+        val main = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+        val apps = pm.queryIntentActivities(main, 0)
+        val match = apps.firstOrNull {
+            val label = it.loadLabel(pm).toString().lowercase()
+            label == q || label.contains(q) || q.contains(label)
+        } ?: apps.minByOrNull {
+            val label = it.loadLabel(pm).toString().lowercase()
+            when {
+                label.startsWith(q) -> 0
+                label.contains(q) -> 1
+                else -> 10
+            }
+        }?.takeIf {
+            val label = it.loadLabel(pm).toString().lowercase()
+            label.contains(q) || q.length >= 3 && label.split(" ").any { w -> w.startsWith(q) }
+        }
+
         return if (match != null) {
             val pkg = match.activityInfo.packageName
             val launch = pm.getLaunchIntentForPackage(pkg)?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -158,6 +212,33 @@ class PhoneControlService @Inject constructor(
                 context.startActivity(launch)
                 "Opened ${match.loadLabel(pm)} ($pkg)"
             } else "Found $pkg but no launch intent"
-        } else "No app matching \"$name\""
+        } else "No app matching \"$name\". Try exact name or say list apps."
+    }
+
+    /** Write text to app cache and open share sheet so user can save as .txt/.html/.py etc. */
+    fun createAndShareFile(fileName: String, content: String, mime: String = "text/plain"): String {
+        return try {
+            val safe = fileName.replace(Regex("[^a-zA-Z0-9._-]"), "_").ifBlank { "jarvis_file.txt" }
+            val file = java.io.File(context.cacheDir, safe)
+            file.writeText(content)
+            val uri = androidx.core.content.FileProvider.getUriForFile(
+                context,
+                context.packageName + ".fileprovider",
+                file
+            )
+            val intent = Intent(Intent.ACTION_SEND).apply {
+                type = mime
+                putExtra(Intent.EXTRA_STREAM, uri)
+                putExtra(Intent.EXTRA_TEXT, content.take(500))
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(Intent.createChooser(intent, "Save / share $safe").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            "Created $safe — pick an app to save or share it"
+        } catch (e: Exception) {
+            // Fallback: share as plain text
+            shareText(content)
+            "Could not write file (${e.message}); shared as text instead"
+        }
     }
 }

@@ -66,6 +66,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.jarvis.mark39.domain.model.ChatMessage
 import com.jarvis.mark39.domain.model.JarvisUiEvent
 import com.jarvis.mark39.domain.model.MessageRole
+import com.jarvis.mark39.ui.components.ThinkingIndicator
 import com.jarvis.mark39.ui.viewmodels.JarvisViewModel
 import kotlinx.coroutines.launch
 
@@ -230,6 +231,20 @@ fun ChatScreen(
                     }
                 }
 
+                if (uiState.isProcessing) {
+                    ThinkingIndicator(
+                        status = uiState.activityStatus ?: "Thinking…",
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
+                    )
+                }
+                uiState.lastProvider?.takeIf { !uiState.isProcessing }?.let { prov ->
+                    Text(
+                        "via $prov",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        style = MaterialTheme.typography.labelMedium,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp)
+                    )
+                }
                 uiState.error?.let {
                     Text(
                         it,
@@ -283,40 +298,44 @@ fun ChatScreen(
 @Composable
 private fun MessageBubble(message: ChatMessage) {
     val isUser = message.role == MessageRole.USER
+    val primary = MaterialTheme.colorScheme.primary
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 4.dp),
+            .padding(horizontal = 14.dp, vertical = 5.dp),
         horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start
     ) {
         Box(
             modifier = Modifier
-                .fillMaxWidth(0.82f)
+                .fillMaxWidth(0.84f)
                 .clip(
                     RoundedCornerShape(
-                        topStart = 18.dp,
-                        topEnd = 18.dp,
-                        bottomStart = if (isUser) 18.dp else 4.dp,
-                        bottomEnd = if (isUser) 4.dp else 18.dp
+                        topStart = 20.dp,
+                        topEnd = 20.dp,
+                        bottomStart = if (isUser) 20.dp else 6.dp,
+                        bottomEnd = if (isUser) 6.dp else 20.dp
                     )
                 )
                 .background(
-                    if (isUser) MaterialTheme.colorScheme.primary.copy(alpha = 0.9f)
-                    else MaterialTheme.colorScheme.surfaceVariant
+                    if (isUser) primary.copy(alpha = 0.92f)
+                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.95f)
                 )
                 .border(
-                    width = if (isUser) 0.dp else 1.dp,
-                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
-                    shape = RoundedCornerShape(18.dp)
+                    width = 1.dp,
+                    color = if (isUser) primary.copy(alpha = 0.3f)
+                    else MaterialTheme.colorScheme.outline.copy(alpha = 0.35f),
+                    shape = RoundedCornerShape(20.dp)
                 )
-                .padding(horizontal = 14.dp, vertical = 10.dp)
+                .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
             Text(
                 text = message.content,
                 color = if (isUser) MaterialTheme.colorScheme.onPrimary
                 else MaterialTheme.colorScheme.onSurface,
-                style = MaterialTheme.typography.bodyMedium
+                style = MaterialTheme.typography.bodyMedium,
+                lineHeight = MaterialTheme.typography.bodyMedium.lineHeight
             )
         }
     }
 }
+

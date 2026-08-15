@@ -10,6 +10,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jarvis.mark39.ai.AgentLoop
 import com.jarvis.mark39.ai.GeminiClient
+import com.jarvis.mark39.ai.OpenRouterClient
+import com.jarvis.mark39.ai.LlmRouter
 import com.jarvis.mark39.ai.ToolRegistry
 import com.jarvis.mark39.ai.VoiceCommandRouter
 import com.jarvis.mark39.data.local.SessionEntity
@@ -37,6 +39,8 @@ data class JarvisUiState(
     val voiceState: VoiceState = VoiceState.IDLE,
     val partialTranscript: String = "",
     val isProcessing: Boolean = false,
+    val activityStatus: String? = null,
+    val lastProvider: String? = null,
     val error: String? = null,
     val hasApiKey: Boolean = false,
     val overlayActive: Boolean = false,
@@ -47,6 +51,8 @@ data class JarvisUiState(
 class JarvisViewModel @Inject constructor(
     @ApplicationContext private val appContext: Context,
     private val gemini: GeminiClient,
+    private val openRouter: OpenRouterClient,
+    private val llmRouter: LlmRouter,
     private val chatRepository: ChatRepository,
     private val settings: SettingsRepository,
     private val voiceService: VoiceService,
@@ -121,7 +127,7 @@ class JarvisViewModel @Inject constructor(
                 return@launch
             }
             _uiState.value = _uiState.value.copy(
-                isProcessing = true, error = null, voiceState = VoiceState.PROCESSING
+                isProcessing = true, error = null, voiceState = VoiceState.PROCESSING, activityStatus = "Thinking…"
             )
             chatRepository.addMessage(ChatMessage(role = MessageRole.USER, content = text))
             try {
@@ -131,7 +137,15 @@ class JarvisViewModel @Inject constructor(
                     local
                 } else {
                     // 2) Gemini + function calling for general / complex
-                    gemini.sendMessage(text)
+                    run {
+                        _uiState.value = _uiState.value.copy(activityStatus = "Connecting to AI…")
+                        val result = llmRouter.chat(text)
+                        _uiState.value = _uiState.value.copy(
+                            activityStatus = "Writing reply…",
+                            lastProvider = result.provider
+                        )
+                        result.text
+                    }
                 }
                 chatRepository.addMessage(ChatMessage(role = MessageRole.ASSISTANT, content = reply))
                 _uiState.value = _uiState.value.copy(voiceState = VoiceState.SPEAKING)
@@ -143,7 +157,7 @@ class JarvisViewModel @Inject constructor(
                 chatRepository.addMessage(ChatMessage(role = MessageRole.ASSISTANT, content = "Error: $msg"))
                 _uiState.value = _uiState.value.copy(error = msg, voiceState = VoiceState.ERROR)
             } finally {
-                _uiState.value = _uiState.value.copy(isProcessing = false)
+                _uiState.value = _uiState.value.copy(isProcessing = false, activityStatus = null)
             }
         }
     }
@@ -176,7 +190,7 @@ class JarvisViewModel @Inject constructor(
                     attachments = listOf(uriString)
                 )
             )
-            _uiState.value = _uiState.value.copy(isProcessing = true)
+            _uiState.value = _uiState.value.copy(isProcessing = true, activityStatus = "Analyzing…")
             try {
                 val result = fileAnalyzer.analyze(uri, gemini)
                 chatRepository.addMessage(ChatMessage(role = MessageRole.ASSISTANT, content = result))
@@ -186,14 +200,14 @@ class JarvisViewModel @Inject constructor(
                     ChatMessage(role = MessageRole.ASSISTANT, content = "File analysis failed: ${e.message}")
                 )
             } finally {
-                _uiState.value = _uiState.value.copy(isProcessing = false)
+                _uiState.value = _uiState.value.copy(isProcessing = false, activityStatus = null)
             }
         }
     }
 
     private fun runAgentTask(goal: String) {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isProcessing = true)
+            _uiState.value = _uiState.value.copy(isProcessing = true, activityStatus = "Analyzing…")
             chatRepository.addMessage(ChatMessage(role = MessageRole.USER, content = "Task: $goal"))
             try {
                 val result = agentLoop.execute(goal)
@@ -209,7 +223,7 @@ class JarvisViewModel @Inject constructor(
                     ChatMessage(role = MessageRole.ASSISTANT, content = "Agent failed: ${e.message}")
                 )
             } finally {
-                _uiState.value = _uiState.value.copy(isProcessing = false)
+                _uiState.value = _uiState.value.copy(isProcessing = false, activityStatus = null)
             }
         }
     }
@@ -225,7 +239,7 @@ class JarvisViewModel @Inject constructor(
             return
         }
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isProcessing = true)
+            _uiState.value = _uiState.value.copy(isProcessing = true, activityStatus = "Analyzing…")
             try {
                 val result = gemini.analyzeImage(
                     frame,
@@ -238,7 +252,7 @@ class JarvisViewModel @Inject constructor(
             } catch (e: Exception) {
                 _visionResult.value = "Camera analysis error: ${e.message}"
             } finally {
-                _uiState.value = _uiState.value.copy(isProcessing = false)
+                _uiState.value = _uiState.value.copy(isProcessing = false, activityStatus = null)
             }
         }
     }

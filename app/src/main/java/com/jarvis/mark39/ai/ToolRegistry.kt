@@ -53,7 +53,10 @@ class ToolRegistry @Inject constructor(
         ToolDef("volume", "Control volume: up, down, mute, or set 0-100", "action:string"),
         ToolDef("wifi_settings", "Open Wi‑Fi settings", ""),
         ToolDef("bluetooth_settings", "Open Bluetooth settings", ""),
-        ToolDef("share_text", "Share text via system sheet", "text:string")
+        ToolDef("share_text", "Share text via system sheet", "text:string"),
+        ToolDef("create_file", "Create a text/html/py/json/md file and open share/save sheet", "filename:string,content:string,mime?:string"),
+        ToolDef("create_html", "Create an HTML page file and share it", "title?:string,body:string"),
+        ToolDef("create_zip_note", "Explain zip creation limits and share files as text bundle", "note:string")
     )
 
     fun listToolsForPrompt(): String =
@@ -64,7 +67,15 @@ class ToolRegistry @Inject constructor(
     suspend fun execute(name: String, params: Map<String, String>): String {
         return try {
             when (name.lowercase()) {
-                "web_search" -> webSearch.search(params["query"] ?: params.values.firstOrNull() ?: return "Missing query")
+                "web_search" -> {
+                    val q = params["query"] ?: params.values.firstOrNull() ?: return "Missing query"
+                    val result = webSearch.search(q)
+                    if (result.startsWith("No instant answer")) {
+                        var url = "https://duckduckgo.com/?q=" + java.net.URLEncoder.encode(q, "UTF-8")
+                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                        result + " (opened browser)"
+                    } else result
+                }
                 "remember" -> {
                     val fact = params["fact"] ?: params.values.firstOrNull() ?: return "Missing fact"
                     memory.storeFact(fact)
@@ -171,6 +182,41 @@ class ToolRegistry @Inject constructor(
                 "wifi_settings" -> phone.openWifiSettings()
                 "bluetooth_settings" -> phone.openBluetoothSettings()
                 "share_text" -> phone.shareText(params["text"] ?: return "Missing text")
+                "create_file" -> {
+                    val fn = params["filename"] ?: params["name"] ?: "jarvis.txt"
+                    val content = params["content"] ?: params["text"] ?: return "Missing content"
+                    val mime = params["mime"] ?: when {
+                        fn.endsWith(".html") || fn.endsWith(".htm") -> "text/html"
+                        fn.endsWith(".json") -> "application/json"
+                        fn.endsWith(".py") -> "text/x-python"
+                        fn.endsWith(".md") -> "text/markdown"
+                        fn.endsWith(".css") -> "text/css"
+                        fn.endsWith(".js") -> "text/javascript"
+                        else -> "text/plain"
+                    }
+                    phone.createAndShareFile(fn, content, mime)
+                }
+                "create_html" -> {
+                    val title = params["title"] ?: "JARVIS Page"
+                    val body = params["body"] ?: params["content"] ?: return "Missing body"
+                    val html = """
+                    <!DOCTYPE html>
+                    <html><head><meta charset=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"/>
+                    <title>$title</title>
+                    <style>body{font-family:system-ui;margin:24px;line-height:1.5;background:#0a0a0f;color:#e6edf3}
+                    a{color:#00e5ff}</style></head>
+                    <body><h1>$title</h1>$body</body></html>
+                    """.trimIndent()
+                    phone.createAndShareFile("jarvis_page.html", html, "text/html")
+                }
+                "create_zip_note" -> {
+                    val note = params["note"] ?: params.values.firstOrNull() ?: ""
+                    phone.shareText(
+                        "JARVIS cannot build binary ZIP archives inside the assistant sandbox yet.\n" +
+                        "I can create .txt/.html/.py/.json files for you to save.\n$note"
+                    )
+                    "Shared guidance + note. For multi-file zip, use Files app or a PC."
+                }
                 else -> "Unknown tool: $name"
             }
         } catch (e: Exception) {
