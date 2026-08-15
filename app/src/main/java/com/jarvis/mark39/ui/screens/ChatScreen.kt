@@ -36,7 +36,6 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -123,7 +122,13 @@ fun ChatScreen(
                     Spacer(Modifier.width(12.dp))
                     Text("New chat", color = MaterialTheme.colorScheme.onSurface)
                 }
-                HorizontalDivider(Modifier = Modifier.padding(vertical = 8.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp)
+                        .height(1.dp)
+                        .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                )
                 LazyColumn {
                     items(sessions, key = { it.id }) { session ->
                         val selected = session.id == currentSessionId
