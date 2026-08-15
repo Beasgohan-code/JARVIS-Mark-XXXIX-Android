@@ -123,7 +123,7 @@ fun ChatScreen(
                     Spacer(Modifier.width(12.dp))
                     Text("New chat", color = MaterialTheme.colorScheme.onSurface)
                 }
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                HorizontalDivider(Modifier = Modifier.padding(vertical = 8.dp))
                 LazyColumn {
                     items(sessions, key = { it.id }) { session ->
                         val selected = session.id == currentSessionId
@@ -141,7 +141,7 @@ fun ChatScreen(
                                 .padding(horizontal = 16.dp, vertical = 12.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Column(Modifier = Modifier.weight(1f)) {
+                            Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     session.title,
                                     color = if (selected) MaterialTheme.colorScheme.primary

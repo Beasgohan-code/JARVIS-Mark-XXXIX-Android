@@ -229,7 +229,7 @@ fun SettingsScreen(
             Text("Style", style = MaterialTheme.typography.labelLarge, color = Color(0xFF8B949E))
             Spacer(Modifier.height(6.dp))
             Column {
-                enumValues<AppStyleId>().chunked(2).forEach { row ->
+                enumValues<AppStyleId>().toList().chunked(2).forEach { row ->
                     Row(Modifier.fillMaxWidth()) {
                         row.forEach { style ->
                             val sel = selectedStyle == style.name
@@ -253,7 +253,7 @@ fun SettingsScreen(
             Text("Wallpaper", style = MaterialTheme.typography.labelLarge, color = Color(0xFF8B949E))
             Spacer(Modifier.height(6.dp))
             Column {
-                enumValues<WallpaperId>().chunked(2).forEach { row ->
+                enumValues<WallpaperId>().toList().chunked(2).forEach { row ->
                     Row(Modifier.fillMaxWidth()) {
                         row.forEach { w ->
                             val sel = selectedWallpaper == w.name
