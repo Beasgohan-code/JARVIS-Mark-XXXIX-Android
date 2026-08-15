@@ -15,6 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -39,11 +40,13 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             ThemeRoot { settings ->
-                if (settings.isHideFromRecents()) {
-                    window.setFlags(
-                        WindowManager.LayoutParams.FLAG_SECURE,
-                        WindowManager.LayoutParams.FLAG_SECURE
-                    )
+                SideEffect {
+                    if (settings.isHideFromRecents()) {
+                        window.setFlags(
+                            WindowManager.LayoutParams.FLAG_SECURE,
+                            WindowManager.LayoutParams.FLAG_SECURE
+                        )
+                    }
                 }
                 var unlocked by remember {
                     mutableStateOf(

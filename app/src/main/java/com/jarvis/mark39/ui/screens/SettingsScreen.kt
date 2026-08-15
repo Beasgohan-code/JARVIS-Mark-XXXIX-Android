@@ -311,7 +311,7 @@ fun SettingsScreen(
             }
             Spacer(Modifier.height(8.dp))
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("Incognito (don\'t save chats)", color = Color.White, modifier = Modifier.weight(1f))
+                Text("Incognito (do not save chats)", color = Color.White, modifier = Modifier.weight(1f))
                 Switch(checked = incognito, onCheckedChange = { incognito = it; saved = false })
             }
             Text(
@@ -341,6 +341,16 @@ Tip: if chat fails with model error, pick another model above and Save.""",
                 style = MaterialTheme.typography.bodySmall,
                 color = Color(0xFF8B949E)
             )
+
+            Spacer(Modifier.height(32.dp))
+            SectionTitle("About")
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "JARVIS Mark XXXIX\nGemini • Voice • Phone control • Vision\nSessions • Themes • App lock",
+                style = MaterialTheme.typography.bodySmall,
+                color = Color(0xFF8B949E)
+            )
+
         }
     }
 }

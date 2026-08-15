@@ -306,6 +306,18 @@ class JarvisViewModel @Inject constructor(
         }
     }
 
+    
+    fun exportChat(): String {
+        val msgs = messages.value
+        return buildString {
+            appendLine("JARVIS Chat Export")
+            appendLine("------------------")
+            msgs.forEach { m ->
+                appendLine("[${m.role}] ${m.content}")
+            }
+        }
+    }
+
     fun refreshApiKeyStatus() {
         _uiState.value = _uiState.value.copy(hasApiKey = settings.hasApiKey())
         if (settings.hasApiKey()) gemini.resetChat()

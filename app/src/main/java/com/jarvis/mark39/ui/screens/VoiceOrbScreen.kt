@@ -4,6 +4,8 @@ import android.Manifest
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -159,6 +161,38 @@ fun VoiceOrbScreen(
             }
 
             Spacer(Modifier.weight(1f))
+
+
+            // Quick voice-style actions
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .padding(bottom = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                listOf(
+                    "What can you do?",
+                    "go home",
+                    "volume up",
+                    "open Chrome",
+                    "search news"
+                ).forEach { phrase ->
+                    Text(
+                        text = phrase,
+                        color = primary,
+                        style = MaterialTheme.typography.labelMedium,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(Color.White.copy(alpha = 0.06f))
+                            .border(1.dp, primary.copy(alpha = 0.35f), RoundedCornerShape(20.dp))
+                            .clickable {
+                                viewModel.onEvent(JarvisUiEvent.SendText(phrase))
+                            }
+                            .padding(horizontal = 14.dp, vertical = 8.dp)
+                    )
+                }
+            }
 
             // Glass bottom action bar
             Row(
