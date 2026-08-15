@@ -1,10 +1,5 @@
 package com.jarvis.mark39.ui.navigation
 
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -25,22 +20,7 @@ object Routes {
 
 @Composable
 fun JarvisNavGraph(navController: NavHostController) {
-    NavHost(
-        navController = navController,
-        startDestination = Routes.VOICE,
-        enterTransition = {
-            fadeIn(tween(280)) + slideInHorizontally(tween(280)) { it / 8 }
-        },
-        exitTransition = {
-            fadeOut(tween(220)) + slideOutHorizontally(tween(220)) { -it / 10 }
-        },
-        popEnterTransition = {
-            fadeIn(tween(280)) + slideInHorizontally(tween(280)) { -it / 8 }
-        },
-        popExitTransition = {
-            fadeOut(tween(220)) + slideOutHorizontally(tween(220)) { it / 10 }
-        }
-    ) {
+    NavHost(navController = navController, startDestination = Routes.VOICE) {
         composable(Routes.VOICE) {
             VoiceOrbScreen(
                 onNavigateToChat = { navController.navigate(Routes.CHAT) },
