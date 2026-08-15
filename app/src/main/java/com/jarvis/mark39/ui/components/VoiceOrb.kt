@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -25,16 +26,16 @@ import kotlin.math.sin
 @Composable
 fun VoiceOrb(
     state: VoiceState,
-    size: Dp = 180.dp,
+    size: Dp = 200.dp,
     onTap: () -> Unit,
     onLongPress: () -> Unit = {}
 ) {
     val infinite = rememberInfiniteTransition(label = "orb")
     val pulse by infinite.animateFloat(
-        initialValue = 0.85f,
-        targetValue = 1.15f,
+        initialValue = 0.92f,
+        targetValue = 1.12f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1200, easing = LinearEasing),
+            animation = tween(1400, easing = LinearEasing),
             repeatMode = RepeatMode.Reverse
         ),
         label = "pulse"
@@ -43,18 +44,27 @@ fun VoiceOrb(
         initialValue = 0f,
         targetValue = 360f,
         animationSpec = infiniteRepeatable(
-            animation = tween(8000, easing = LinearEasing),
+            animation = tween(10000, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
         ),
         label = "rot"
     )
+    val ring by infinite.animateFloat(
+        initialValue = 0.6f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "ring"
+    )
 
     val coreColor = when (state) {
         VoiceState.LISTENING -> Color(0xFF00E5FF)
-        VoiceState.PROCESSING -> Color(0xFFFFAB00)
-        VoiceState.SPEAKING -> Color(0xFF76FF03)
+        VoiceState.PROCESSING -> Color(0xFFFFB300)
+        VoiceState.SPEAKING -> Color(0xFF69F0AE)
         VoiceState.ERROR -> Color(0xFFFF5252)
-        VoiceState.IDLE -> Color(0xFF00B8D4)
+        VoiceState.IDLE -> Color(0xFF00B0FF)
     }
 
     Canvas(
@@ -67,47 +77,68 @@ fun VoiceOrb(
                 )
             }
     ) {
-        val center = Offset(this.size.width / 2, this.size.height / 2)
-        val radius = this.size.minDimension / 2 * if (state == VoiceState.LISTENING || state == VoiceState.SPEAKING) pulse else 1f
+        val center = Offset(this.size.width / 2f, this.size.height / 2f)
+        val baseR = this.size.minDimension / 2f
+        val active = state == VoiceState.LISTENING || state == VoiceState.SPEAKING || state == VoiceState.PROCESSING
+        val r = baseR * if (active) pulse else 1f
 
-        // Outer glow rings
-        for (i in 3 downTo 1) {
-            drawCircle(
-                color = coreColor.copy(alpha = 0.08f * i),
-                radius = radius * (1f + i * 0.18f),
-                center = center
-            )
-        }
-
-        // Rotating arc accents
-        val arcCount = 6
-        for (i in 0 until arcCount) {
-            val angle = Math.toRadians((rotation + i * (360.0 / arcCount)))
-            val x = center.x + cos(angle).toFloat() * radius * 0.7f
-            val y = center.y + sin(angle).toFloat() * radius * 0.7f
-            drawCircle(
-                color = coreColor.copy(alpha = 0.35f),
-                radius = 6f,
-                center = Offset(x, y)
-            )
-        }
-
-        // Core gradient
+        // Outer soft glow
         drawCircle(
             brush = Brush.radialGradient(
-                colors = listOf(coreColor, coreColor.copy(alpha = 0.4f), Color.Transparent),
+                colors = listOf(coreColor.copy(alpha = 0.35f), Color.Transparent),
                 center = center,
-                radius = radius
+                radius = r * 1.35f
             ),
-            radius = radius,
+            radius = r * 1.35f,
             center = center
         )
 
-        // Inner solid
+        // Expanding ring when listening
+        if (state == VoiceState.LISTENING) {
+            drawCircle(
+                color = coreColor.copy(alpha = (1f - ring) * 0.5f),
+                radius = r * (0.85f + ring * 0.55f),
+                center = center,
+                style = Stroke(width = 3f)
+            )
+        }
+
+        // Rotating orbital dots
+        val dots = 8
+        for (i in 0 until dots) {
+            val angle = Math.toRadians((rotation + i * (360.0 / dots)))
+            val orbit = r * 0.78f
+            val dx = (cos(angle) * orbit).toFloat()
+            val dy = (sin(angle) * orbit).toFloat()
+            drawCircle(
+                color = coreColor.copy(alpha = 0.55f),
+                radius = 4.5f,
+                center = Offset(center.x + dx, center.y + dy)
+            )
+        }
+
+        // Core gradient sphere
         drawCircle(
-            color = coreColor.copy(alpha = 0.9f),
-            radius = radius * 0.35f,
+            brush = Brush.radialGradient(
+                colors = listOf(
+                    Color.White.copy(alpha = 0.95f),
+                    coreColor,
+                    coreColor.copy(alpha = 0.75f),
+                    Color(0xFF05080F)
+                ),
+                center = Offset(center.x - r * 0.15f, center.y - r * 0.2f),
+                radius = r * 0.72f
+            ),
+            radius = r * 0.58f,
             center = center
+        )
+
+        // Inner ring
+        drawCircle(
+            color = Color.White.copy(alpha = 0.25f),
+            radius = r * 0.58f,
+            center = center,
+            style = Stroke(width = 2f)
         )
     }
 }

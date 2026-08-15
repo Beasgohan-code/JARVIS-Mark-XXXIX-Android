@@ -12,6 +12,7 @@ import com.jarvis.mark39.ai.AgentLoop
 import com.jarvis.mark39.ai.GeminiClient
 import com.jarvis.mark39.ai.ToolRegistry
 import com.jarvis.mark39.ai.VoiceCommandRouter
+import com.jarvis.mark39.data.local.SessionEntity
 import com.jarvis.mark39.data.repository.ChatRepository
 import com.jarvis.mark39.data.repository.SettingsRepository
 import com.jarvis.mark39.domain.model.ChatMessage
@@ -57,7 +58,12 @@ class JarvisViewModel @Inject constructor(
 ) : ViewModel() {
 
     val messages: StateFlow<List<ChatMessage>> = chatRepository.observeMessages()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+            .stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val sessions: StateFlow<List<SessionEntity>> = chatRepository.sessions
+            .stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val currentSessionId: StateFlow<String> = chatRepository.currentSessionId
 
     private val _uiState = MutableStateFlow(JarvisUiState(hasApiKey = settings.hasApiKey()))
     val uiState: StateFlow<JarvisUiState> = _uiState.asStateFlow()
@@ -68,6 +74,7 @@ class JarvisViewModel @Inject constructor(
     @Volatile private var lastCameraFrame: Bitmap? = null
 
     init {
+        viewModelScope.launch { chatRepository.ensureDefaultSession() }
         viewModelScope.launch {
             voiceService.isListening.collect { listening ->
                 if (listening) {
@@ -267,6 +274,36 @@ class JarvisViewModel @Inject constructor(
     fun stopOverlayBubble() {
         appContext.stopService(Intent(appContext, OverlayBubbleService::class.java))
         _uiState.value = _uiState.value.copy(overlayActive = false)
+    }
+
+    
+    
+    fun createSession() {
+        viewModelScope.launch {
+            chatRepository.createSession()
+            gemini.resetChat()
+            _uiState.value = _uiState.value.copy(error = null)
+        }
+    }
+
+    fun switchSession(id: String) {
+        viewModelScope.launch {
+            chatRepository.switchSession(id)
+            gemini.resetChat()
+            _uiState.value = _uiState.value.copy(error = null)
+        }
+    }
+
+    fun deleteSession(id: String) {
+        viewModelScope.launch { chatRepository.deleteSession(id) }
+    }
+
+    fun newChatSession() {
+        viewModelScope.launch {
+            chatRepository.createSession()
+            gemini.resetChat()
+            _uiState.value = _uiState.value.copy(error = null)
+        }
     }
 
     fun refreshApiKeyStatus() {

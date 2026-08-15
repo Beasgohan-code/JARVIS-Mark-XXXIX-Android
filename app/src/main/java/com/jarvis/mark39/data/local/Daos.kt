@@ -7,15 +7,36 @@ import androidx.room.Query
 import kotlinx.coroutines.flow.Flow
 
 @Dao
-interface MessageDao {
-    @Query("SELECT * FROM messages ORDER BY timestamp ASC")
-    fun getAllMessages(): Flow<List<MessageEntity>>
+interface SessionDao {
+    @Query("SELECT * FROM sessions ORDER BY updatedAt DESC")
+    fun observeSessions(): Flow<List<SessionEntity>>
 
-    @Query("SELECT * FROM messages ORDER BY timestamp DESC LIMIT :limit")
-    suspend fun getRecentMessages(limit: Int = 50): List<MessageEntity>
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(session: SessionEntity)
+
+    @Query("UPDATE sessions SET title = :title, updatedAt = :updatedAt WHERE id = :id")
+    suspend fun updateTitle(id: String, title: String, updatedAt: Long = System.currentTimeMillis())
+
+    @Query("DELETE FROM sessions WHERE id = :id")
+    suspend fun delete(id: String)
+
+    @Query("SELECT * FROM sessions WHERE id = :id LIMIT 1")
+    suspend fun get(id: String): SessionEntity?
+}
+
+@Dao
+interface MessageDao {
+    @Query("SELECT * FROM messages WHERE sessionId = :sessionId ORDER BY timestamp ASC")
+    fun getMessagesForSession(sessionId: String): Flow<List<MessageEntity>>
+
+    @Query("SELECT * FROM messages WHERE sessionId = :sessionId ORDER BY timestamp DESC LIMIT :limit")
+    suspend fun getRecentForSession(sessionId: String, limit: Int = 50): List<MessageEntity>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(message: MessageEntity)
+
+    @Query("DELETE FROM messages WHERE sessionId = :sessionId")
+    suspend fun clearSession(sessionId: String)
 
     @Query("DELETE FROM messages")
     suspend fun clearAll()

@@ -6,6 +6,7 @@ import androidx.room.Room
 import com.jarvis.mark39.data.local.JarvisDatabase
 import com.jarvis.mark39.data.local.MemoryDao
 import com.jarvis.mark39.data.local.MessageDao
+import com.jarvis.mark39.data.local.SessionDao
 import com.jarvis.mark39.data.local.TaskDao
 import dagger.Module
 import dagger.Provides
@@ -25,6 +26,7 @@ object AppModule {
             .fallbackToDestructiveMigration()
             .build()
 
+    @Provides fun provideSessionDao(db: JarvisDatabase): SessionDao = db.sessionDao()
     @Provides fun provideMessageDao(db: JarvisDatabase): MessageDao = db.messageDao()
     @Provides fun provideMemoryDao(db: JarvisDatabase): MemoryDao = db.memoryDao()
     @Provides fun provideTaskDao(db: JarvisDatabase): TaskDao = db.taskDao()

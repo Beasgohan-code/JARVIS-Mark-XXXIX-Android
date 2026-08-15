@@ -32,6 +32,37 @@ class SettingsRepository @Inject constructor(
     fun isConfirmBeforeAction(): Boolean = prefs.getBoolean(KEY_CONFIRM, true)
     fun setConfirmBeforeAction(value: Boolean) = prefs.edit().putBoolean(KEY_CONFIRM, value).apply()
 
+    
+    fun getGeminiModel(): String =
+        prefs.getString("gemini_model", "gemini-2.5-flash") ?: "gemini-2.5-flash"
+
+    fun setGeminiModel(model: String) {
+        prefs.edit().putString("gemini_model", model).apply()
+    }
+
+    
+    fun getStyleId(): String = prefs.getString("style_id", "JARVIS_CYAN") ?: "JARVIS_CYAN"
+    fun setStyleId(id: String) = prefs.edit().putString("style_id", id).apply()
+
+    fun isLightMode(): Boolean = prefs.getBoolean("light_mode", false)
+    fun setLightMode(v: Boolean) = prefs.edit().putBoolean("light_mode", v).apply()
+
+    fun getWallpaperId(): String = prefs.getString("wallpaper_id", "DEEP_SPACE") ?: "DEEP_SPACE"
+    fun setWallpaperId(id: String) = prefs.edit().putString("wallpaper_id", id).apply()
+
+    
+    fun isAppLockEnabled(): Boolean = prefs.getBoolean("app_lock", false)
+    fun setAppLockEnabled(v: Boolean) = prefs.edit().putBoolean("app_lock", v).apply()
+
+    fun getAppPin(): String = prefs.getString("app_pin", "") ?: ""
+    fun setAppPin(pin: String) = prefs.edit().putString("app_pin", pin).apply()
+
+    fun isHideFromRecents(): Boolean = prefs.getBoolean("hide_recents", false)
+    fun setHideFromRecents(v: Boolean) = prefs.edit().putBoolean("hide_recents", v).apply()
+
+    fun isIncognitoMode(): Boolean = prefs.getBoolean("incognito", false)
+    fun setIncognitoMode(v: Boolean) = prefs.edit().putBoolean("incognito", v).apply()
+
     fun hasApiKey(): Boolean = getGeminiApiKey().isNotBlank()
 
     companion object {

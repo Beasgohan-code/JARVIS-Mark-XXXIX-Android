@@ -14,11 +14,6 @@ import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/**
- * Gemini chat + vision client.
- * Device tools are handled by [VoiceCommandRouter] and [AgentLoop] (text actions),
- * not SDK FunctionDeclaration (API differs across generativeai versions).
- */
 @Singleton
 class GeminiClient @Inject constructor(
     private val settings: SettingsRepository,
@@ -26,14 +21,17 @@ class GeminiClient @Inject constructor(
 ) {
     private var model: GenerativeModel? = null
     private var chatSession: com.google.ai.client.generativeai.Chat? = null
+    private var boundModelName: String? = null
 
     private fun ensureModel(): GenerativeModel {
         val key = settings.getGeminiApiKey()
         require(key.isNotBlank()) { "Gemini API key is missing. Set it in Settings." }
 
-        if (model == null) {
+        val modelName = settings.getGeminiModel().ifBlank { DEFAULT_MODEL }
+
+        if (model == null || boundModelName != modelName) {
             model = GenerativeModel(
-                modelName = "gemini-2.0-flash",
+                modelName = modelName,
                 apiKey = key,
                 generationConfig = generationConfig {
                     temperature = 0.7f
@@ -48,6 +46,7 @@ class GeminiClient @Inject constructor(
                 systemInstruction = content { text(SYSTEM_PROMPT) }
             )
             chatSession = model!!.startChat()
+            boundModelName = modelName
         }
         return model!!
     }
@@ -55,32 +54,41 @@ class GeminiClient @Inject constructor(
     fun resetChat() {
         model = null
         chatSession = null
+        boundModelName = null
     }
 
     suspend fun sendMessage(userText: String, extraContext: String = ""): String =
         withContext(Dispatchers.IO) {
-            val m = ensureModel()
-            val memoryCtx = memoryRepository.getContextForPrompt()
-            val fullPrompt = buildString {
-                if (memoryCtx.isNotBlank()) append(memoryCtx).append("\n\n")
-                if (extraContext.isNotBlank()) append(extraContext).append("\n\n")
-                append(userText)
+            try {
+                val m = ensureModel()
+                val memoryCtx = memoryRepository.getContextForPrompt()
+                val fullPrompt = buildString {
+                    if (memoryCtx.isNotBlank()) append(memoryCtx).append("\n\n")
+                    if (extraContext.isNotBlank()) append(extraContext).append("\n\n")
+                    append(userText)
+                }
+                val response = chatSession?.sendMessage(fullPrompt) ?: m.generateContent(fullPrompt)
+                response.text?.trim().orEmpty().ifBlank { "I could not generate a response." }
+            } catch (e: Exception) {
+                throw RuntimeException(friendlyError(e), e)
             }
-            val response = chatSession?.sendMessage(fullPrompt) ?: m.generateContent(fullPrompt)
-            response.text?.trim().orEmpty().ifBlank { "I could not generate a response." }
         }
 
     suspend fun analyzeImage(
         bitmap: Bitmap,
         prompt: String = "Describe what you see and suggest useful actions."
     ): String = withContext(Dispatchers.IO) {
-        val response = ensureModel().generateContent(
-            content {
-                image(bitmap)
-                text(prompt)
-            }
-        )
-        response.text?.trim().orEmpty()
+        try {
+            val response = ensureModel().generateContent(
+                content {
+                    image(bitmap)
+                    text(prompt)
+                }
+            )
+            response.text?.trim().orEmpty()
+        } catch (e: Exception) {
+            throw RuntimeException(friendlyError(e), e)
+        }
     }
 
     suspend fun analyzeScreen(bitmap: Bitmap): String = analyzeImage(
@@ -91,20 +99,60 @@ class GeminiClient @Inject constructor(
     suspend fun analyzeImages(bitmaps: List<Bitmap>, prompt: String): String =
         withContext(Dispatchers.IO) {
             if (bitmaps.isEmpty()) return@withContext "No images."
-            val response = ensureModel().generateContent(
-                content {
-                    bitmaps.forEach { image(it) }
-                    text(prompt)
-                }
-            )
-            response.text?.trim().orEmpty()
+            try {
+                val response = ensureModel().generateContent(
+                    content {
+                        bitmaps.forEach { image(it) }
+                        text(prompt)
+                    }
+                )
+                response.text?.trim().orEmpty()
+            } catch (e: Exception) {
+                throw RuntimeException(friendlyError(e), e)
+            }
         }
 
     companion object {
+        const val DEFAULT_MODEL = "gemini-2.5-flash"
+
+        val AVAILABLE_MODELS = listOf(
+            "gemini-2.5-flash",
+            "gemini-2.5-flash-lite",
+            "gemini-2.5-pro",
+            "gemini-3.5-flash",
+            "gemini-3.6-flash"
+        )
+
         private val SYSTEM_PROMPT = """
-You are JARVIS Mark XXXIX on Android — helpful, concise, slightly witty.
-You help control the phone via the user's voice commands (home, open apps, volume, search, etc.).
-Be clear and short when confirming actions.
+You are JARVIS Mark XXXIX — an advanced Android AI assistant inspired by a calm, precise butler.
+Personality: helpful, concise, slightly witty, never robotic or verbose.
+Rules:
+- Answer clearly in short paragraphs or bullets when useful.
+- Prefer action + confirmation over long explanations.
+- If the user asks to control the phone (home, apps, volume, call, etc.), acknowledge and assume the local router may execute it.
+- For facts that may change (news, weather, prices), say when you are unsure.
+- Never invent private data about the user.
+- Match the user's language (English/Hinglish/etc.).
+- Security: never ask for or store passwords, OTPs, or full card numbers.
 """.trimIndent()
+
+        fun friendlyError(e: Throwable): String {
+            val raw = e.message.orEmpty() + " " + (e.cause?.message.orEmpty())
+            return when {
+                raw.contains("API key", ignoreCase = true) ||
+                    raw.contains("API_KEY", ignoreCase = true) ||
+                    raw.contains("401") || raw.contains("403") ->
+                    "Invalid or missing Gemini API key. Check Settings."
+                raw.contains("no longer available", ignoreCase = true) ||
+                    raw.contains("NOT_FOUND") || raw.contains("404") ->
+                    "Model not available. Open Settings and pick another model (e.g. gemini-2.5-flash)."
+                raw.contains("RESOURCE_EXHAUSTED") || raw.contains("429") ->
+                    "Rate limit hit. Wait a minute and try again."
+                raw.contains("SAFETY", ignoreCase = true) ->
+                    "Response blocked by safety filters. Rephrase your request."
+                raw.isBlank() -> "Network or Gemini error. Check internet and try again."
+                else -> raw.take(280)
+            }
+        }
     }
 }
