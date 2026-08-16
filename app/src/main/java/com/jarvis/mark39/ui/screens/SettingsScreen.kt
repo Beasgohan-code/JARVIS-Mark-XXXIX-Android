@@ -8,6 +8,7 @@ import android.provider.Settings
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -65,6 +66,7 @@ import dagger.hilt.components.SingletonComponent
 @Composable
 fun SettingsScreen(
     onBack: () -> Unit,
+    onNavigateToSkills: () -> Unit = {},
     viewModel: JarvisViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
@@ -85,6 +87,9 @@ fun SettingsScreen(
     var saved by remember { mutableStateOf(false) }
     var selectedPromptId by remember { mutableStateOf(settings.getSystemPromptId()) }
     var depthMode by remember { mutableStateOf(settings.getDepthMode()) }
+    var voiceLocale by remember { mutableStateOf(settings.getVoiceLocale()) }
+    var voiceRate by remember { mutableStateOf(settings.getVoiceRate()) }
+    var voicePitch by remember { mutableStateOf(settings.getVoicePitch()) }
     var customPrompt by remember { mutableStateOf(settings.getCustomSystemPrompt()) }
     var llmProvider by remember { mutableStateOf(settings.getLlmProvider()) }
     var orModel by remember { mutableStateOf(settings.getOpenRouterModel()) }
@@ -94,8 +99,12 @@ fun SettingsScreen(
     var skillVision by remember { mutableStateOf(settings.isSkillVision()) }
     var skillAgent by remember { mutableStateOf(settings.isSkillAgent()) }
     var skillSaveTokens by remember { mutableStateOf(settings.isSkillSaveTokens()) }
+    var skillTranslate by remember { mutableStateOf(settings.isSkillTranslate()) }
+    var skillMultiLang by remember { mutableStateOf(settings.isSkillMultiLangCode()) }
     var fallbackEnabled by remember { mutableStateOf(settings.isFallbackEnabled()) }
     var groqModel by remember { mutableStateOf(settings.getGroqModel()) }
+    var preferGroqFast by remember { mutableStateOf(settings.isPreferGroqFast()) }
+    var groqHistory by remember { mutableStateOf(settings.isGroqHistoryEnabled()) }
     var selectedStyle by remember { mutableStateOf(settings.getStyleId()) }
     var lightMode by remember { mutableStateOf(settings.isLightMode()) }
     var selectedWallpaper by remember { mutableStateOf(settings.getWallpaperId()) }
@@ -126,6 +135,7 @@ fun SettingsScreen(
                 .verticalScroll(rememberScrollState())
         ) {
             SectionTitle("API")
+            SettingsCard {
             Spacer(Modifier.height(8.dp))
             Text(
                 "Get a free key at aistudio.google.com/apikey",
@@ -207,10 +217,17 @@ fun SettingsScreen(
                     settings.setGroqApiKey(groqKey)
                     settings.setGroqModel(groqModel)
                     settings.setSkillSaveTokens(skillSaveTokens)
+                    settings.setSkillTranslate(skillTranslate)
+                    settings.setSkillMultiLangCode(skillMultiLang)
                     settings.setFallbackEnabled(fallbackEnabled)
+                    settings.setPreferGroqFast(preferGroqFast)
+                    settings.setGroqHistoryEnabled(groqHistory)
                     settings.setGeminiModel(selectedModel)
                     settings.setSystemPromptId(selectedPromptId)
                     settings.setDepthMode(depthMode)
+                    settings.setVoiceLocale(voiceLocale)
+                    settings.setVoiceRate(voiceRate)
+                    settings.setVoicePitch(voicePitch)
                     settings.setCustomSystemPrompt(customPrompt)
                     settings.setLlmProvider(llmProvider)
                     settings.setOpenRouterModel(orModel)
@@ -238,7 +255,10 @@ fun SettingsScreen(
             Spacer(Modifier.height(28.dp))
             
             Spacer(Modifier.height(28.dp))
+                        }
+
             SectionTitle("LLM provider")
+            SettingsCard {
             Spacer(Modifier.height(8.dp))
             Row(Modifier.fillMaxWidth()) {
                 listOf("gemini" to "Gemini", "groq" to "Groq", "openrouter" to "OpenRouter").forEach { (id, label) ->
@@ -264,7 +284,8 @@ fun SettingsScreen(
                     "llama-3.1-8b-instant",
                     "llama-3.1-70b-versatile",
                     "gemma2-9b-it",
-                    "mixtral-8x7b-32768"
+                    "mixtral-8x7b-32768",
+                    "qwen/qwen3-32b"
                 ).forEach { m ->
                     val sel = groqModel == m
                     Text(
@@ -286,13 +307,14 @@ fun SettingsScreen(
                 Spacer(Modifier.height(6.dp))
                 Column {
                     listOf(
-                        "anthropic/claude-3.5-sonnet",
-                        "anthropic/claude-3-haiku",
                         "openai/gpt-4o-mini",
-                        "openai/gpt-4o",
+                        "anthropic/claude-3.5-sonnet",
                         "google/gemini-2.0-flash-001",
-                        "meta-llama/llama-3.1-70b-instruct",
-                        "deepseek/deepseek-chat"
+                        "meta-llama/llama-3.3-70b-instruct:free",
+                        "qwen/qwen3-coder:free",
+                        "google/gemma-3-27b-it:free",
+                        "nvidia/nemotron-3-nano-30b-a3b:free",
+                        "meta-llama/llama-3.2-3b-instruct:free"
                     ).forEach { m ->
                         val sel = orModel == m
                         Text(
@@ -317,7 +339,11 @@ fun SettingsScreen(
             }
 
             Spacer(Modifier.height(28.dp))
+                        }
+
             SectionTitle("Skills")
+            Spacer(Modifier.height(8.dp))
+            ModernButton("Open Skill Creator") { onNavigateToSkills() }
             Spacer(Modifier.height(8.dp))
             SkillRow("Web search", skillWeb) { skillWeb = it; saved = false }
             SkillRow("Phone control", skillPhone) { skillPhone = it; saved = false }
@@ -325,7 +351,25 @@ fun SettingsScreen(
             SkillRow("Vision / camera", skillVision) { skillVision = it; saved = false }
             SkillRow("Agent mode (multi-step)", skillAgent) { skillAgent = it; saved = false }
             SkillRow("Save tokens (short replies)", skillSaveTokens) { skillSaveTokens = it; saved = false }
+            SkillRow("Translate / multilingual", skillTranslate) { skillTranslate = it; saved = false }
+            SkillRow("Multi-language coding (Py/JS/Go…)", skillMultiLang) { skillMultiLang = it; saved = false }
             SkillRow("Auto fallback (Gemini→Groq→OpenRouter)", fallbackEnabled) { fallbackEnabled = it; saved = false }
+
+            if (llmProvider == "groq" || preferGroqFast) {
+                Spacer(Modifier.height(8.dp))
+                SkillRow("Prefer Groq for short/fast replies", preferGroqFast) {
+                    preferGroqFast = it; saved = false
+                }
+                SkillRow("Groq multi-turn history", groqHistory) {
+                    groqHistory = it; saved = false
+                }
+                Text(
+                    "Groq = ultra-fast. Key free at console.groq.com · Llama 3.3 70B recommended.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color(0xFF8B949E)
+                )
+            }
+
             Text(
                 "Agent mode uses extra tool steps. No full Linux sandbox on phone — actions stay on-device.",
                 style = MaterialTheme.typography.bodySmall,
@@ -386,6 +430,7 @@ fun SettingsScreen(
             
             Spacer(Modifier.height(28.dp))
             SectionTitle("Personality / System prompt")
+            SettingsCard {
             Spacer(Modifier.height(8.dp))
             Text(
                 "How JARVIS thinks and replies",
@@ -396,27 +441,40 @@ fun SettingsScreen(
             Column {
                 SystemPrompts.PRESETS.forEach { preset ->
                     val sel = selectedPromptId == preset.id
-                    Column(
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 4.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(if (sel) Color(0xFF00E5FF).copy(alpha = 0.2f) else Color(0xFF161B22))
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(if (sel) Color(0xFF00E5FF).copy(alpha = 0.12f) else Color(0xFF0C121C))
+                            .border(
+                                1.dp,
+                                if (sel) Color(0xFF00E5FF).copy(alpha = 0.7f) else Color(0xFF1E2633),
+                                RoundedCornerShape(14.dp)
+                            )
                             .clickable {
                                 selectedPromptId = preset.id
                                 saved = false
                             }
-                            .padding(12.dp)
+                            .padding(horizontal = 14.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                preset.label,
+                                color = if (sel) Color(0xFF00E5FF) else Color.White,
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                            Text(
+                                preset.description,
+                                color = Color(0xFF8B949E),
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
                         Text(
-                            preset.label,
-                            color = if (sel) Color(0xFF00E5FF) else Color.White,
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                        Text(
-                            preset.description,
-                            color = Color(0xFF8B949E),
-                            style = MaterialTheme.typography.bodySmall
+                            if (sel) "✓" else "○",
+                            color = if (sel) Color(0xFF00E5FF) else Color(0xFF4A5568),
+                            style = MaterialTheme.typography.titleMedium
                         )
                     }
                 }
@@ -464,27 +522,92 @@ fun SettingsScreen(
             Text("Answer depth", style = MaterialTheme.typography.labelLarge, color = Color(0xFF8B949E))
             Spacer(Modifier.height(6.dp))
             Column {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(
+                        "quick" to "Quick",
+                        "balanced" to "Balanced",
+                        "deep" to "Deep",
+                        "thorough" to "Thorough"
+                    ).forEach { (id, label) ->
+                        val sel = depthMode == id
+                        Text(
+                            label,
+                            color = if (sel) Color.Black else Color.White,
+                            style = MaterialTheme.typography.labelLarge,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(if (sel) Color(0xFF00E5FF) else Color(0xFF161B22))
+                                .clickable { depthMode = id; saved = false }
+                                .padding(horizontal = 12.dp, vertical = 8.dp)
+                        )
+                    }
+                }
+            }
+                        }
+
+            
+            Spacer(Modifier.height(28.dp))
+            SectionTitle("Voice")
+            Spacer(Modifier.height(8.dp))
+            Text("Speech language", style = MaterialTheme.typography.labelLarge, color = Color(0xFF8B949E))
+            Spacer(Modifier.height(6.dp))
+            Column {
                 listOf(
-                    "quick" to "Quick — short & fast",
-                    "balanced" to "Balanced — Gemini-like",
-                    "deep" to "Deep — Claude-like care",
-                    "thorough" to "Thorough — Kimi-like detail"
+                    "default" to "System default",
+                    "en-US" to "English (US)",
+                    "en-GB" to "English (UK)",
+                    "hi" to "Hindi",
+                    "ml" to "Malayalam",
+                    "ta" to "Tamil",
+                    "te" to "Telugu"
                 ).forEach { (id, label) ->
-                    val sel = depthMode == id
+                    val sel = voiceLocale == id
                     Text(
                         label,
                         color = if (sel) Color(0xFF00E5FF) else Color.White,
-                        style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 3.dp)
                             .clip(RoundedCornerShape(10.dp))
                             .background(if (sel) Color(0xFF00E5FF).copy(alpha = 0.15f) else Color(0xFF161B22))
-                            .clickable { depthMode = id; saved = false }
+                            .clickable { voiceLocale = id; saved = false }
                             .padding(12.dp)
                     )
                 }
             }
+            Spacer(Modifier.height(8.dp))
+            Text("Speech rate: ${"%.1f".format(voiceRate)}x", color = Color(0xFF8B949E))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf(0.8f, 1.0f, 1.2f, 1.5f).forEach { r ->
+                    val sel = kotlin.math.abs(voiceRate - r) < 0.05f
+                    Text(
+                        "${r}x",
+                        color = if (sel) Color.Black else Color.White,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(if (sel) Color(0xFF00E5FF) else Color(0xFF161B22))
+                            .clickable { voiceRate = r; saved = false }
+                            .padding(horizontal = 12.dp, vertical = 8.dp)
+                    )
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+            Text("Pitch: ${"%.1f".format(voicePitch)}", color = Color(0xFF8B949E))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf(0.8f, 1.0f, 1.2f).forEach { r ->
+                    val sel = kotlin.math.abs(voicePitch - r) < 0.05f
+                    Text(
+                        "$r",
+                        color = if (sel) Color.Black else Color.White,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(if (sel) Color(0xFF00E5FF) else Color(0xFF161B22))
+                            .clickable { voicePitch = r; saved = false }
+                            .padding(horizontal = 12.dp, vertical = 8.dp)
+                    )
+                }
+            }
+
             SectionTitle("Appearance")
             Spacer(Modifier.height(8.dp))
             Text("Style", style = MaterialTheme.typography.labelLarge, color = Color(0xFF8B949E))
@@ -612,6 +735,21 @@ Tip: if chat fails with model error, pick another model above and Save.""",
             )
 
         }
+    }
+}
+
+
+@Composable
+private fun SettingsCard(content: @Composable () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .background(Color(0xCC0C121C))
+            .border(1.dp, Color(0xFF00E5FF).copy(alpha = 0.18f), RoundedCornerShape(20.dp))
+            .padding(16.dp)
+    ) {
+        content()
     }
 }
 

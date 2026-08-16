@@ -241,4 +241,29 @@ class PhoneControlService @Inject constructor(
             "Could not write file (${e.message}); shared as text instead"
         }
     }
+
+    fun openYoutubeSearch(query: String): String {
+        val q = query.trim()
+        return try {
+            val app = Intent(Intent.ACTION_SEARCH).apply {
+                setPackage("com.google.android.youtube")
+                putExtra("query", q)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(app)
+            "Searching YouTube for "$q""
+        } catch (_: Exception) {
+            val url = "https://www.youtube.com/results?search_query=" + Uri.encode(q)
+            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            "Opened YouTube search for "$q""
+        }
+    }
+
+    fun openWeather(city: String): String {
+        val q = city.trim().ifBlank { "weather" }
+        val url = "https://www.google.com/search?q=" + Uri.encode("weather $q")
+        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        return "Opening weather for $q"
+    }
+
 }

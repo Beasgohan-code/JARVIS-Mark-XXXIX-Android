@@ -10,8 +10,9 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.jarvis.mark39.ui.screens.ChatScreen
+import com.jarvis.mark39.ui.screens.MemoryScreen
+import com.jarvis.mark39.ui.screens.SkillCreatorScreen
 import com.jarvis.mark39.ui.screens.SettingsScreen
-import com.jarvis.mark39.ui.screens.TaskPlannerScreen
 import com.jarvis.mark39.ui.screens.VisionScreen
 import com.jarvis.mark39.ui.screens.VoiceOrbScreen
 
@@ -19,7 +20,8 @@ object Routes {
     const val VOICE = "voice"
     const val CHAT = "chat"
     const val SETTINGS = "settings"
-    const val TASKS = "tasks"
+    const val MEMORY = "memory"
+    const val SKILLS = "skills"
     const val VISION = "vision"
 }
 
@@ -45,7 +47,7 @@ fun JarvisNavGraph(navController: NavHostController) {
             VoiceOrbScreen(
                 onNavigateToChat = { navController.navigate(Routes.CHAT) },
                 onNavigateToSettings = { navController.navigate(Routes.SETTINGS) },
-                onNavigateToTasks = { navController.navigate(Routes.TASKS) },
+                onNavigateToMemory = { navController.navigate(Routes.MEMORY) },
                 onNavigateToVision = { navController.navigate(Routes.VISION) }
             )
         }
@@ -56,10 +58,16 @@ fun JarvisNavGraph(navController: NavHostController) {
             )
         }
         composable(Routes.SETTINGS) {
-            SettingsScreen(onBack = { navController.popBackStack() })
+            SettingsScreen(
+                onBack = { navController.popBackStack() },
+                onNavigateToSkills = { navController.navigate(Routes.SKILLS) }
+            )
         }
-        composable(Routes.TASKS) {
-            TaskPlannerScreen(onBack = { navController.popBackStack() })
+        composable(Routes.MEMORY) {
+            MemoryScreen(onBack = { navController.popBackStack() })
+        }
+        composable(Routes.SKILLS) {
+            SkillCreatorScreen(onBack = { navController.popBackStack() })
         }
         composable(Routes.VISION) {
             VisionScreen(onBack = { navController.popBackStack() })

@@ -28,7 +28,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.TaskAlt
+import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -59,7 +59,8 @@ fun VoiceOrbScreen(
     onNavigateToChat: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToVision: () -> Unit = {},
-    onNavigateToTasks: () -> Unit = {},
+    onNavigateToMemory: () -> Unit = {},
+    onNavigateToSkills: () -> Unit = {},
     viewModel: JarvisViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -98,16 +99,16 @@ fun VoiceOrbScreen(
             Spacer(Modifier.height(52.dp))
             Text(
                 text = "JARVIS",
-                color = primary,
-                fontSize = 32.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 6.sp
+                color = Color.White.copy(alpha = 0.95f),
+                fontSize = 34.sp,
+                fontWeight = FontWeight.Light,
+                letterSpacing = 10.sp
             )
             Text(
                 text = "MARK XXXIX",
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+                color = primary.copy(alpha = 0.85f),
                 fontSize = 11.sp,
-                letterSpacing = 4.sp,
+                letterSpacing = 6.sp,
                 fontWeight = FontWeight.Medium
             )
 
@@ -196,7 +197,7 @@ fun VoiceOrbScreen(
                 ) {
                     NavChip(Icons.Default.Chat, "Chat", onNavigateToChat)
                     NavChip(Icons.Default.CameraAlt, "Vision", onNavigateToVision)
-                    NavChip(Icons.Default.TaskAlt, "Tasks", onNavigateToTasks)
+                    NavChip(Icons.Default.Lightbulb, "Skills", onNavigateToSkills)
                     NavChip(Icons.Default.Settings, "Settings", onNavigateToSettings)
                 }
             }

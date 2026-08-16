@@ -35,7 +35,7 @@ class GeminiClient @Inject constructor(
                 apiKey = key,
                 generationConfig = generationConfig {
                     temperature = 0.7f
-                    maxOutputTokens = 2048
+                    maxOutputTokens = 8192
                 },
                 safetySettings = listOf(
                     SafetySetting(HarmCategory.HARASSMENT, BlockThreshold.ONLY_HIGH),
@@ -137,6 +137,9 @@ class GeminiClient @Inject constructor(
                     "Model not available. Open Settings and pick another model (e.g. gemini-2.5-flash)."
                 raw.contains("RESOURCE_EXHAUSTED") || raw.contains("429") ->
                     "Rate limit hit. Wait a minute and try again."
+                raw.contains("MAX_TOKENS", ignoreCase = true) ||
+                    raw.contains("max tokens", ignoreCase = true) ->
+                    "Reply hit the length limit. Ask for a shorter answer, or split the file into parts."
                 raw.contains("SAFETY", ignoreCase = true) ->
                     "Response blocked by safety filters. Rephrase your request."
                 raw.isBlank() -> "Network or Gemini error. Check internet and try again."

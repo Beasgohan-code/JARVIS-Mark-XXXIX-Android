@@ -89,7 +89,7 @@ class SettingsRepository @Inject constructor(
     fun setLlmProvider(v: String) = prefs.edit().putString("llm_provider", v).apply()
 
     fun getOpenRouterModel(): String =
-        prefs.getString("or_model", "anthropic/claude-3.5-sonnet") ?: "anthropic/claude-3.5-sonnet"
+        prefs.getString("or_model", "openai/gpt-4o-mini") ?: "openai/gpt-4o-mini"
     fun setOpenRouterModel(v: String) = prefs.edit().putString("or_model", v).apply()
 
     fun getGroqModel(): String =
@@ -116,6 +116,43 @@ class SettingsRepository @Inject constructor(
 
     fun isFallbackEnabled(): Boolean = prefs.getBoolean("llm_fallback", true)
     fun setFallbackEnabled(v: Boolean) = prefs.edit().putBoolean("llm_fallback", v).apply()
+
+    
+    fun isSkillTranslate(): Boolean = prefs.getBoolean("skill_translate", true)
+    fun setSkillTranslate(v: Boolean) = prefs.edit().putBoolean("skill_translate", v).apply()
+
+    fun isSkillMultiLangCode(): Boolean = prefs.getBoolean("skill_multilang_code", true)
+    fun setSkillMultiLangCode(v: Boolean) = prefs.edit().putBoolean("skill_multilang_code", v).apply()
+
+    
+    fun getGroqTemperature(): Float =
+        prefs.getFloat("groq_temperature", 0.7f)
+    fun setGroqTemperature(v: Float) = prefs.edit().putFloat("groq_temperature", v.coerceIn(0f, 2f)).apply()
+
+    fun getGroqMaxTokens(): Int = prefs.getInt("groq_max_tokens", 4096)
+    fun setGroqMaxTokens(v: Int) = prefs.edit().putInt("groq_max_tokens", v.coerceIn(256, 8192)).apply()
+
+    fun isGroqHistoryEnabled(): Boolean = prefs.getBoolean("groq_history", true)
+    fun setGroqHistoryEnabled(v: Boolean) = prefs.edit().putBoolean("groq_history", v).apply()
+
+    fun isGroqJsonMode(): Boolean = prefs.getBoolean("groq_json_mode", false)
+    fun setGroqJsonMode(v: Boolean) = prefs.edit().putBoolean("groq_json_mode", v).apply()
+
+    fun isPreferGroqFast(): Boolean = prefs.getBoolean("prefer_groq_fast", false)
+    fun setPreferGroqFast(v: Boolean) = prefs.edit().putBoolean("prefer_groq_fast", v).apply()
+
+    
+    fun getVoiceLocale(): String = prefs.getString("voice_locale", "default") ?: "default"
+    fun setVoiceLocale(v: String) = prefs.edit().putString("voice_locale", v).apply()
+
+    fun getVoiceRate(): Float = prefs.getFloat("voice_rate", 1.0f)
+    fun setVoiceRate(v: Float) = prefs.edit().putFloat("voice_rate", v.coerceIn(0.5f, 2.0f)).apply()
+
+    fun getVoicePitch(): Float = prefs.getFloat("voice_pitch", 1.0f)
+    fun setVoicePitch(v: Float) = prefs.edit().putFloat("voice_pitch", v.coerceIn(0.5f, 2.0f)).apply()
+
+    fun getVoiceName(): String = prefs.getString("voice_name", "") ?: ""
+    fun setVoiceName(v: String) = prefs.edit().putString("voice_name", v).apply()
 
     fun hasApiKey(): Boolean =
         getGeminiApiKey().isNotBlank() ||

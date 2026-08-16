@@ -4,6 +4,7 @@ import android.content.ContentResolver
 import android.content.Context
 import androidx.room.Room
 import com.jarvis.mark39.data.local.JarvisDatabase
+import com.jarvis.mark39.data.local.CustomSkillDao
 import com.jarvis.mark39.data.local.MemoryDao
 import com.jarvis.mark39.data.local.MessageDao
 import com.jarvis.mark39.data.local.SessionDao
@@ -30,6 +31,7 @@ object AppModule {
     @Provides fun provideMessageDao(db: JarvisDatabase): MessageDao = db.messageDao()
     @Provides fun provideMemoryDao(db: JarvisDatabase): MemoryDao = db.memoryDao()
     @Provides fun provideTaskDao(db: JarvisDatabase): TaskDao = db.taskDao()
+    @Provides fun provideCustomSkillDao(db: JarvisDatabase): CustomSkillDao = db.customSkillDao()
 
     @Provides
     fun provideContentResolver(@ApplicationContext context: Context): ContentResolver =

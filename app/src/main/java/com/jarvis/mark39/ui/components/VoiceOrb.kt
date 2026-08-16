@@ -16,6 +16,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -26,119 +27,121 @@ import kotlin.math.sin
 @Composable
 fun VoiceOrb(
     state: VoiceState,
-    size: Dp = 200.dp,
+    size: Dp = 240.dp,
     onTap: () -> Unit,
     onLongPress: () -> Unit = {}
 ) {
     val infinite = rememberInfiniteTransition(label = "orb")
     val pulse by infinite.animateFloat(
-        initialValue = 0.92f,
-        targetValue = 1.12f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1400, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
+        initialValue = 0.94f,
+        targetValue = 1.08f,
+        animationSpec = infiniteRepeatable(tween(1800, easing = LinearEasing), RepeatMode.Reverse),
         label = "pulse"
     )
-    val rotation by infinite.animateFloat(
+    val rotSlow by infinite.animateFloat(
         initialValue = 0f,
         targetValue = 360f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(10000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "rot"
+        animationSpec = infiniteRepeatable(tween(22000, easing = LinearEasing), RepeatMode.Restart),
+        label = "rotSlow"
     )
-    val ring by infinite.animateFloat(
-        initialValue = 0.6f,
+    val rotFast by infinite.animateFloat(
+        initialValue = 360f,
+        targetValue = 0f,
+        animationSpec = infiniteRepeatable(tween(14000, easing = LinearEasing), RepeatMode.Restart),
+        label = "rotFast"
+    )
+    val wave by infinite.animateFloat(
+        initialValue = 0f,
         targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "ring"
+        animationSpec = infiniteRepeatable(tween(2400, easing = LinearEasing), RepeatMode.Restart),
+        label = "wave"
     )
 
-    val coreColor = when (state) {
-        VoiceState.LISTENING -> Color(0xFF00E5FF)
-        VoiceState.PROCESSING -> Color(0xFFFFB300)
+    val core = when (state) {
+        VoiceState.LISTENING -> Color(0xFF00F0FF)
+        VoiceState.PROCESSING -> Color(0xFFFFC107)
         VoiceState.SPEAKING -> Color(0xFF69F0AE)
         VoiceState.ERROR -> Color(0xFFFF5252)
-        VoiceState.IDLE -> Color(0xFF00B0FF)
+        VoiceState.IDLE -> Color(0xFF00D4FF)
     }
 
     Canvas(
         modifier = Modifier
             .size(size)
             .pointerInput(Unit) {
-                detectTapGestures(
-                    onTap = { onTap() },
-                    onLongPress = { onLongPress() }
-                )
+                detectTapGestures(onTap = { onTap() }, onLongPress = { onLongPress() })
             }
     ) {
-        val center = Offset(this.size.width / 2f, this.size.height / 2f)
-        val baseR = this.size.minDimension / 2f
-        val active = state == VoiceState.LISTENING || state == VoiceState.SPEAKING || state == VoiceState.PROCESSING
-        val r = baseR * if (active) pulse else 1f
+        val c = Offset(this.size.width / 2f, this.size.height / 2f)
+        val r = this.size.minDimension / 2f
 
         // Outer soft glow
         drawCircle(
             brush = Brush.radialGradient(
-                colors = listOf(coreColor.copy(alpha = 0.35f), Color.Transparent),
-                center = center,
-                radius = r * 1.35f
+                colors = listOf(core.copy(alpha = 0.18f), Color.Transparent),
+                center = c,
+                radius = r * 1.05f
             ),
-            radius = r * 1.35f,
-            center = center
+            radius = r * 1.05f,
+            center = c
         )
 
-        // Expanding ring when listening
-        if (state == VoiceState.LISTENING) {
+        // Expanding rings when listening/processing
+        if (state == VoiceState.LISTENING || state == VoiceState.PROCESSING) {
+            for (i in 0..2) {
+                val t = ((wave + i / 3f) % 1f)
+                drawCircle(
+                    color = core.copy(alpha = (1f - t) * 0.35f),
+                    radius = r * 0.35f + t * r * 0.55f,
+                    center = c,
+                    style = Stroke(width = 2.5f)
+                )
+            }
+        }
+
+        // Orbital ellipses (preview A style)
+        rotate(rotSlow, c) {
             drawCircle(
-                color = coreColor.copy(alpha = (1f - ring) * 0.5f),
-                radius = r * (0.85f + ring * 0.55f),
-                center = center,
-                style = Stroke(width = 3f)
+                color = core.copy(alpha = 0.35f),
+                radius = r * 0.72f,
+                center = c,
+                style = Stroke(width = 1.5f)
+            )
+            // tilted ring simulation via offset arcs points
+            for (a in 0 until 360 step 8) {
+                val rad = Math.toRadians(a.toDouble())
+                val x = c.x + cos(rad).toFloat() * r * 0.78f
+                val y = c.y + sin(rad).toFloat() * r * 0.42f
+                if (a % 16 == 0) {
+                    drawCircle(core.copy(alpha = 0.5f), radius = 2f, center = Offset(x, y))
+                }
+            }
+        }
+        rotate(rotFast, c) {
+            drawCircle(
+                color = core.copy(alpha = 0.25f),
+                radius = r * 0.58f,
+                center = c,
+                style = Stroke(width = 1.2f)
             )
         }
 
-        // Rotating orbital dots
-        val dots = 8
-        for (i in 0 until dots) {
-            val angle = Math.toRadians((rotation + i * (360.0 / dots)))
-            val orbit = r * 0.78f
-            val dx = (cos(angle) * orbit).toFloat()
-            val dy = (sin(angle) * orbit).toFloat()
-            drawCircle(
-                color = coreColor.copy(alpha = 0.55f),
-                radius = 4.5f,
-                center = Offset(center.x + dx, center.y + dy)
-            )
-        }
-
-        // Core gradient sphere
+        // Core sphere
+        val coreR = r * 0.32f * pulse
         drawCircle(
             brush = Brush.radialGradient(
-                colors = listOf(
-                    Color.White.copy(alpha = 0.95f),
-                    coreColor,
-                    coreColor.copy(alpha = 0.75f),
-                    Color(0xFF05080F)
-                ),
-                center = Offset(center.x - r * 0.15f, center.y - r * 0.2f),
-                radius = r * 0.72f
+                colors = listOf(Color.White.copy(alpha = 0.95f), core, core.copy(alpha = 0.4f)),
+                center = Offset(c.x - coreR * 0.25f, c.y - coreR * 0.25f),
+                radius = coreR * 1.4f
             ),
-            radius = r * 0.58f,
-            center = center
+            radius = coreR,
+            center = c
         )
-
-        // Inner ring
+        // Inner highlight
         drawCircle(
-            color = Color.White.copy(alpha = 0.25f),
-            radius = r * 0.58f,
-            center = center,
-            style = Stroke(width = 2f)
+            color = Color.White.copy(alpha = 0.5f),
+            radius = coreR * 0.28f,
+            center = Offset(c.x - coreR * 0.25f, c.y - coreR * 0.28f)
         )
     }
 }

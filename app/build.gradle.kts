@@ -64,7 +64,7 @@ dependencies {
     implementation("androidx.activity:activity-compose:1.9.3")
 
     // Jetpack Compose
-    implementation(platform("androidx.compose:compose-bom:2024.10.01"))
+    implementation(platform("androidx.compose:compose-bom:2024.12.01"))
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")

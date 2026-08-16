@@ -12,10 +12,15 @@ import com.jarvis.mark39.ai.AgentLoop
 import com.jarvis.mark39.ai.GeminiClient
 import com.jarvis.mark39.ai.OpenRouterClient
 import com.jarvis.mark39.ai.LlmRouter
+import com.jarvis.mark39.ai.GroqClient
 import com.jarvis.mark39.ai.ToolRegistry
 import com.jarvis.mark39.ai.VoiceCommandRouter
 import com.jarvis.mark39.data.local.SessionEntity
 import com.jarvis.mark39.data.repository.ChatRepository
+import com.jarvis.mark39.data.repository.MemoryRepository
+import com.jarvis.mark39.data.repository.CustomSkillRepository
+import com.jarvis.mark39.data.local.CustomSkillEntity
+import com.jarvis.mark39.domain.model.MemoryItem
 import com.jarvis.mark39.data.repository.SettingsRepository
 import com.jarvis.mark39.domain.model.ChatMessage
 import com.jarvis.mark39.domain.model.JarvisUiEvent
@@ -40,6 +45,7 @@ data class JarvisUiState(
     val partialTranscript: String = "",
     val isProcessing: Boolean = false,
     val activityStatus: String? = null,
+    val activityLog: List<String> = emptyList(),
     val lastProvider: String? = null,
     val error: String? = null,
     val hasApiKey: Boolean = false,
@@ -53,8 +59,11 @@ class JarvisViewModel @Inject constructor(
     private val gemini: GeminiClient,
     private val openRouter: OpenRouterClient,
     private val llmRouter: LlmRouter,
+    private val groq: GroqClient,
     private val chatRepository: ChatRepository,
     private val settings: SettingsRepository,
+    private val memoryRepository: MemoryRepository,
+    private val customSkillRepository: CustomSkillRepository,
     private val voiceService: VoiceService,
     private val agentLoop: AgentLoop,
     private val fileAnalyzer: FileAnalyzer,
@@ -70,6 +79,9 @@ class JarvisViewModel @Inject constructor(
             .stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5000), emptyList())
 
     val currentSessionId: StateFlow<String> = chatRepository.currentSessionId
+
+    val customSkills = customSkillRepository.observeAll()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private val _uiState = MutableStateFlow(JarvisUiState(hasApiKey = settings.hasApiKey()))
     val uiState: StateFlow<JarvisUiState> = _uiState.asStateFlow()
@@ -127,27 +139,37 @@ class JarvisViewModel @Inject constructor(
                 return@launch
             }
             _uiState.value = _uiState.value.copy(
-                isProcessing = true, error = null, voiceState = VoiceState.PROCESSING, activityStatus = "Thinking…"
+                isProcessing = true, error = null, voiceState = VoiceState.PROCESSING, activityStatus = "Thinking…", activityLog = (_uiState.value.activityLog + "Thinking…").takeLast(8)
             )
             chatRepository.addMessage(ChatMessage(role = MessageRole.USER, content = text))
             try {
                 // 1) Fast local voice commands (phone control)
                 val local = voiceCommands.tryHandle(text)
                 val reply = if (local != null) {
+                    _uiState.value = _uiState.value.copy(
+                        activityStatus = "Ran command: ${text.take(40)}",
+                        activityLog = (_uiState.value.activityLog + "Ran command → ${local.take(60)}").takeLast(8)
+                    )
                     local
                 } else {
                     // 2) Gemini + function calling for general / complex
                     run {
-                        _uiState.value = _uiState.value.copy(activityStatus = "Connecting to AI…")
+                        _uiState.value = _uiState.value.copy(activityStatus = "Connecting to AI…", activityLog = (_uiState.value.activityLog + "Connecting to AI…").takeLast(8))
                         val result = llmRouter.chat(text)
                         _uiState.value = _uiState.value.copy(
-                            activityStatus = "Writing reply…",
+                            activityStatus = "Writing reply…", activityLog = (_uiState.value.activityLog + "Writing reply…").takeLast(8),
                             lastProvider = result.provider
                         )
                         result.text
                     }
                 }
                 chatRepository.addMessage(ChatMessage(role = MessageRole.ASSISTANT, content = reply))
+                if (local == null) {
+                    val prov = _uiState.value.lastProvider ?: "ai"
+                    _uiState.value = _uiState.value.copy(
+                        activityLog = (_uiState.value.activityLog + "Reply via $prov").takeLast(8)
+                    )
+                }
                 _uiState.value = _uiState.value.copy(voiceState = VoiceState.SPEAKING)
                 voiceService.speak(reply) {
                     _uiState.value = _uiState.value.copy(voiceState = VoiceState.IDLE)
@@ -296,6 +318,7 @@ class JarvisViewModel @Inject constructor(
         viewModelScope.launch {
             chatRepository.createSession()
             gemini.resetChat()
+            groq.resetHistory()
             _uiState.value = _uiState.value.copy(error = null)
         }
     }
@@ -304,6 +327,7 @@ class JarvisViewModel @Inject constructor(
         viewModelScope.launch {
             chatRepository.switchSession(id)
             gemini.resetChat()
+            groq.resetHistory()
             _uiState.value = _uiState.value.copy(error = null)
         }
     }
@@ -316,6 +340,7 @@ class JarvisViewModel @Inject constructor(
         viewModelScope.launch {
             chatRepository.createSession()
             gemini.resetChat()
+            groq.resetHistory()
             _uiState.value = _uiState.value.copy(error = null)
         }
     }
@@ -332,9 +357,41 @@ class JarvisViewModel @Inject constructor(
         }
     }
 
+    
+    suspend fun loadMemories(): List<MemoryItem> = memoryRepository.getRecent(100)
+
+    suspend fun saveMemory(fact: String) {
+        memoryRepository.storeFact(fact, "user")
+    }
+
+    suspend fun deleteMemory(id: String) {
+        memoryRepository.delete(id)
+    }
+
+    private fun setActivity(status: String?) {
+        val log = if (status != null) {
+            (_uiState.value.activityLog + status).takeLast(8)
+        } else _uiState.value.activityLog
+        _uiState.value = _uiState.value.copy(activityStatus = status, activityLog = log)
+    }
+
+    suspend fun addCustomSkill(name: String, description: String, instructions: String) {
+        customSkillRepository.add(name, description, instructions)
+    }
+
+    suspend fun deleteCustomSkill(id: String) = customSkillRepository.delete(id)
+
+    suspend fun setCustomSkillEnabled(id: String, enabled: Boolean) =
+        customSkillRepository.setEnabled(id, enabled)
+
+    fun clearActivityLog() {
+        _uiState.value = _uiState.value.copy(activityLog = emptyList(), activityStatus = null)
+    }
+
     fun refreshApiKeyStatus() {
         _uiState.value = _uiState.value.copy(hasApiKey = settings.hasApiKey())
         if (settings.hasApiKey()) gemini.resetChat()
+        groq.resetHistory()
     }
 
     override fun onCleared() {

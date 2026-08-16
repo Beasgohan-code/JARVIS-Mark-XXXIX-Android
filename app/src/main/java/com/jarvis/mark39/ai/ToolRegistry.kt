@@ -54,6 +54,9 @@ class ToolRegistry @Inject constructor(
         ToolDef("wifi_settings", "Open Wi‑Fi settings", ""),
         ToolDef("bluetooth_settings", "Open Bluetooth settings", ""),
         ToolDef("share_text", "Share text via system sheet", "text:string"),
+        ToolDef("youtube_search", "Search YouTube and open results", "query:string"),
+        ToolDef("weather", "Open weather for a city", "city:string"),
+
         ToolDef("create_file", "Create a text/html/py/json/md file and open share/save sheet", "filename:string,content:string,mime?:string"),
         ToolDef("create_html", "Create an HTML page file and share it", "title?:string,body:string"),
         ToolDef("create_zip_note", "Explain zip creation limits and share files as text bundle", "note:string")
@@ -182,6 +185,8 @@ class ToolRegistry @Inject constructor(
                 "wifi_settings" -> phone.openWifiSettings()
                 "bluetooth_settings" -> phone.openBluetoothSettings()
                 "share_text" -> phone.shareText(params["text"] ?: return "Missing text")
+                "youtube_search" -> phone.openYoutubeSearch(params["query"] ?: params.values.firstOrNull() ?: return "Missing query")
+                "weather" -> phone.openWeather(params["city"] ?: params["query"] ?: params.values.firstOrNull() ?: "me")
                 "create_file" -> {
                     val fn = params["filename"] ?: params["name"] ?: "jarvis.txt"
                     val content = params["content"] ?: params["text"] ?: return "Missing content"

@@ -56,6 +56,9 @@ interface MemoryDao {
     @Query("DELETE FROM memories WHERE timestamp < :cutoff")
     suspend fun pruneOld(cutoff: Long)
 
+    @Query("DELETE FROM memories WHERE id = :id")
+    suspend fun deleteById(id: String)
+
     @Query("SELECT * FROM memories WHERE content LIKE '%' || :query || '%' LIMIT 20")
     suspend fun search(query: String): List<MemoryEntity>
 }
@@ -70,4 +73,23 @@ interface TaskDao {
 
     @Query("UPDATE tasks SET status = :status, result = :result, updatedAt = :updatedAt, stepsJson = :stepsJson WHERE id = :id")
     suspend fun update(id: String, status: String, result: String?, updatedAt: Long, stepsJson: String)
+}
+
+
+@Dao
+interface CustomSkillDao {
+    @Query("SELECT * FROM custom_skills ORDER BY createdAt DESC")
+    fun observeAll(): Flow<List<CustomSkillEntity>>
+
+    @Query("SELECT * FROM custom_skills WHERE enabled = 1 ORDER BY createdAt DESC")
+    suspend fun getEnabled(): List<CustomSkillEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(skill: CustomSkillEntity)
+
+    @Query("DELETE FROM custom_skills WHERE id = :id")
+    suspend fun delete(id: String)
+
+    @Query("UPDATE custom_skills SET enabled = :enabled WHERE id = :id")
+    suspend fun setEnabled(id: String, enabled: Boolean)
 }

@@ -23,6 +23,7 @@ fun JARVISTheme(
         MaterialTheme(
             colorScheme = scheme,
             typography = JarvisTypography,
+            shapes = JarvisShapes,
             content = content
         )
     }

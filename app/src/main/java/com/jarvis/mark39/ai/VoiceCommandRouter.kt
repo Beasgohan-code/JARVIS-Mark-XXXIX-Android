@@ -119,6 +119,16 @@ class VoiceCommandRouter @Inject constructor(
             )
         }
 
+        // YouTube
+        Regex("""^(?:youtube|play on youtube|search youtube)\s+(.+)$""").find(text)?.let { m ->
+            return tools.execute("youtube_search", mapOf("query" to m.groupValues[1].trim()))
+        }
+        // Weather
+        Regex("""^(?:weather|weather in|what's the weather in|what is the weather in)\s*(.*)$""").find(text)?.let { m ->
+            val city = m.groupValues[1].trim().ifBlank { "here" }
+            return tools.execute("weather", mapOf("city" to city))
+        }
+
         return null
     }
 }
