@@ -251,11 +251,11 @@ class PhoneControlService @Inject constructor(
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
             context.startActivity(app)
-            "Searching YouTube for "$q""
+            "Searching YouTube for \"$q\""
         } catch (_: Exception) {
             val url = "https://www.youtube.com/results?search_query=" + Uri.encode(q)
             context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-            "Opened YouTube search for "$q""
+            "Opened YouTube search for \"$q\""
         }
     }
 

@@ -89,11 +89,11 @@ class FileAnalyzer @Inject constructor(
             BufferedReader(InputStreamReader(stream)).readText()
         } ?: return "Could not read text file ${meta.name}"
 
-        val truncated = if (text.length > 10_000) text.take(10_000) + "\n…[truncated at 10k chars]" else text
+        val truncated = if (text.length > 6_000) text.take(6_000) + "\n…[truncated at 6k chars]" else text
         val prompt = buildString {
             append("Analyze text file \"${meta.name}\" (${formatSize(meta.size)}, ${text.length} chars).\n")
             if (hint.isNotBlank()) append("User request: $hint\n")
-            append("Summarize in clear sections. Extract key points. Keep under ~800 words.\n")
+            append("Summarize in clear sections. Extract key points. Keep under 400 words. If truncated file, note that..\n")
             append("If code: describe structure, main bugs/risks, how to run.\n---\n")
             append(truncated)
         }
