@@ -28,6 +28,15 @@ class MemoryRepository @Inject constructor(
         }
     }
 
+    suspend fun getRecent(limit: Int = 100): List<MemoryItem> =
+        memoryDao.getRecentMemories(limit).map {
+            MemoryItem(it.id, it.content, it.category, it.timestamp)
+        }
+
+    suspend fun delete(id: String) {
+        memoryDao.deleteById(id)
+    }
+
     suspend fun pruneOld(days: Int = 90) {
         val cutoff = System.currentTimeMillis() - days * 24L * 60 * 60 * 1000
         memoryDao.pruneOld(cutoff)

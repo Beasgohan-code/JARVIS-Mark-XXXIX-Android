@@ -86,7 +86,7 @@ class LlmRouter @Inject constructor(
         }
     }
 
-    fun systemPromptFor(userText: String): String {
+    suspend fun systemPromptFor(userText: String): String {
         var base = settings.resolveSystemPrompt() + customSkills.promptAddon()
         if (settings.isSkillSaveTokens() && tokenBudget(userText) <= 1024) {
             base += "\n\n[Token-saver] Keep the reply short unless code or a full file is required."
